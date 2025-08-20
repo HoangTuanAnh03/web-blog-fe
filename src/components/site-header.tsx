@@ -16,12 +16,14 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 export function SiteHeader() {
-  const isAuthenticated = false
-  const user = null
+  const isAuthenticated =
+    typeof window !== "undefined" && !!localStorage.getItem("authState");
 
   const handleLogout = () => {
-    console.log("Logout clicked")
-  }
+    console.log("Logout clicked");
+    localStorage.removeItem("authState");
+    window.location.reload();
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -46,7 +48,7 @@ export function SiteHeader() {
                 <Link href="/blogs/new" className="text-foreground hover:text-primary transition-colors">
                   Viết Bài
                 </Link>
-                <Link href="/profile" className="text-foreground hover:text-primary transition-colors">
+                <Link href="/users/" className="text-foreground hover:text-primary transition-colors">
                   Hồ Sơ
                 </Link>
               </nav>
