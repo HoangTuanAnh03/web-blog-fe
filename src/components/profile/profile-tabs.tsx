@@ -1,37 +1,131 @@
 import Link from "next/link"
-import { useState, useMemo, useEffect } from "react"
+import { useState, useEffect } from "react"
+import Image from "next/image"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Eye, Calendar, Users, UserPlus, BookOpen } from "lucide-react"
+import { Edit, Eye, Calendar, Users, UserPlus, BookOpen, MessageSquare, Loader2 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Pagination } from "@/components/profile/pagination"
 
-// Utility function
-function paginate<T>(array: T[], pageSize: number, pageNumber: number): T[] {
-  return array.slice((pageNumber - 1) * pageSize, pageNumber * pageSize)
+// Helper function for safe image URL
+function getSafeImageUrl(url: string | null | undefined, fallback = "/placeholder.svg"): string {
+  if (!url || url === "string" || url === "null") return fallback
+  return url.startsWith("http") || url.startsWith("/") ? url : fallback
+}
+
+// Helper function to get auth headers
+const getAuthHeaders = () => {
+  const token = JSON.parse(localStorage.getItem("authState") as string)?.accessToken
+  return {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  }
+}
+
+interface ProfileTabsProps {
+  activeTab: string
+  setActiveTab: (tab: string) => void
+  blogs: any[]
+  followers: any[]
+  following: any[]
+  followStats: { follower: number; following: number }
+  isCurrentUser: boolean
+  isLoadingBlogs: boolean
+  isLoadingFollowers: boolean
+  isLoadingFollowing: boolean
+  profile: any
+  totalBlogs: number
+  userId: string
 }
 
 export function ProfileTabs({
-  activeTab, setActiveTab, blogs, followers, following, followStats, isCurrentUser,
-  isLoadingBlogs, isLoadingFollowers, isLoadingFollowing, profile, totalBlogs
-}: any) {
-  const POSTS_PER_PAGE = 6
-  const [currentPage, setCurrentPage] = useState(1)
-  const totalPages = Math.ceil((blogs?.length || 0) / POSTS_PER_PAGE)
-  const currentBlogs = useMemo(
-    () => paginate(blogs || [], POSTS_PER_PAGE, currentPage),
-    [blogs, currentPage]
-  )
+  activeTab,
+  setActiveTab,
+  blogs,
+  followers,
+  following,
+  followStats,
+  isCurrentUser,
+  isLoadingBlogs,
+  isLoadingFollowers,
+  isLoadingFollowing,
+  profile,
+  totalBlogs,
+  userId
+}: ProfileTabsProps) {
+  //  New pagination states
+  const POSTS_PER_PAGE = 12
+  const [currentPage, setCurrentPage] = useState(1) // UI 1-based
+  const [totalPages, setTotalPages] = useState(1)
+  const [isLoadingPage, setIsLoadingPage] = useState(false)
+  const [currentBlogs, setCurrentBlogs] = useState<any[]>([])
 
   useEffect(() => {
-    if (activeTab === "posts") setCurrentPage(1)
+    async function fetchPageData() {
+      if (activeTab !== "posts") return
+      
+      try {
+        setIsLoadingPage(true)
+        
+        const apiPage = Math.max(0, currentPage - 1)
+        
+        console.log(`🔄 Fetching UI page ${currentPage} → API page ${apiPage}`)
+        
+        const res = await fetch(
+          `https://api.sportbooking.site/blog/post/user/${userId}?page=${apiPage}&size=${POSTS_PER_PAGE}`,
+          { headers: getAuthHeaders() }
+        )
+        const json = await res.json()
+        
+        if (json.code === 200 && json.data) {
+          setCurrentBlogs(json.data.content || [])
+          
+          if (apiPage === 0) {
+            const totalElements = json.data.totalElements || 0
+            const calculatedPages = Math.ceil(totalElements / POSTS_PER_PAGE)
+            setTotalPages(calculatedPages)
+          }
+          
+          console.log(` Loaded page ${currentPage} (API page=${apiPage}) - ${json.data.content.length} items`)
+        }
+      } catch (error) {
+        console.error(`❌ Error fetching page ${currentPage}:`, error)
+      } finally {
+        setIsLoadingPage(false)
+      }
+    }
+
+    fetchPageData()
+  }, [currentPage, activeTab, userId])
+
+  useEffect(() => {
+    if (activeTab === "posts" && currentPage !== 1) {
+      console.log(`🔄 Reset to page 1 when switching to posts tab`)
+      setCurrentPage(1)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab])
 
-  const goToPreviousPage = () => setCurrentPage(page => Math.max(page - 1, 1))
-  const goToNextPage = () => setCurrentPage(page => Math.min(page + 1, totalPages))
-  const goToPage = (page: number) => setCurrentPage(page)
+  const goToPreviousPage = () => {
+    const newPage = Math.max(currentPage - 1, 1)
+    console.log(`⬅️ Previous: ${currentPage} → ${newPage}`)
+    setCurrentPage(newPage)
+  }
+  
+  const goToNextPage = () => {
+    const newPage = Math.min(currentPage + 1, totalPages)
+    console.log(`➡️ Next: ${currentPage} → ${newPage}`)
+    setCurrentPage(newPage)
+  }
+  
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+      console.log(`🎯 Jump: ${currentPage} → ${page}`)
+      setCurrentPage(page)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -73,24 +167,31 @@ export function ProfileTabs({
         </div>
 
         <TabsContent value="posts" className="mt-0 space-y-6">
-          {/* {isCurrentUser && (
+          {isCurrentUser && (
             <div className="flex justify-between items-center p-4 bg-muted/30 rounded-lg border">
               <div>
                 <h3 className="text-lg font-semibold">Bài Viết Của Bạn</h3>
                 <p className="text-sm text-muted-foreground">
-                  Quản lý và chia sẻ nội dung của bạn
+                  Quản lý và chia sẻ nội dung của bạn • Trang {currentPage}/{totalPages}
                 </p>
               </div>
+              {isLoadingPage && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Đang tải...
+                </div>
+              )}
             </div>
-          )} */}
+          )}
 
-          {isLoadingBlogs ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[...Array(6)].map((_, i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardContent className="p-4">
-                    <div className="h-4 bg-muted rounded w-3/4 mb-3"></div>
-                    <div className="h-3 bg-muted rounded w-1/2 mb-3"></div>
+          {(isLoadingBlogs || isLoadingPage) ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[...Array(12)].map((_, i) => (
+                <Card key={i} className="animate-pulse overflow-hidden">
+                  <div className="aspect-video bg-muted"></div>
+                  <CardContent className="p-4 space-y-2">
+                    <div className="h-4 bg-muted rounded w-3/4"></div>
+                    <div className="h-3 bg-muted rounded w-1/2"></div>
                     <div className="flex justify-between">
                       <div className="h-3 bg-muted rounded w-20"></div>
                       <div className="h-3 bg-muted rounded w-16"></div>
@@ -99,56 +200,139 @@ export function ProfileTabs({
                 </Card>
               ))}
             </div>
-          ) : blogs && blogs.length > 0 ? (
+          ) : currentBlogs && currentBlogs.length > 0 ? (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {currentBlogs.map((blog: any, index: number) => (
-                  <Card key={blog.id} className="group hover:shadow-md transition-all duration-200 border-0 shadow-sm">
-                    <CardContent className="p-0">
-                      {/* Card Header */}
-                      <div className="h-24 bg-gradient-to-r from-muted/50 to-muted/30 relative">
-                        <div className="absolute top-3 right-3">
-                          <Badge variant="outline" className="text-xs">
-                            #{(currentPage - 1) * POSTS_PER_PAGE + index + 1}
-                          </Badge>
+                  <Link key={blog.id} href={`/blogs/${blog.id}`}>
+                    <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-sm cursor-pointer overflow-hidden">
+                      <div className="relative">
+                        {/* Blog Cover Image */}
+                        <div className="aspect-video relative overflow-hidden bg-gradient-to-br from-muted/50 to-muted/30">
+                          {blog.cover && blog.cover !== "string" && blog.cover !== "null" ? (
+                            <Image
+                              src={getSafeImageUrl(blog.cover)}
+                              alt={blog.title}
+                              fill
+                              className="object-cover transition-transform duration-300 group-hover:scale-105"
+                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100">
+                              <BookOpen className="h-12 w-12 text-muted-foreground/50" />
+                            </div>
+                          )}
+                          
+                          {/* Hover Overlay */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+                          
+                          <div className="absolute top-3 right-3">
+                            <Badge variant="secondary" className="text-xs bg-white/90 backdrop-blur-sm">
+                              #{(currentPage - 1) * POSTS_PER_PAGE + index + 1}
+                            </Badge>
+                          </div>
+
+                          {/* Sensitive Content Warning */}
+                          {blog.hasSensitiveContent && (
+                            <div className="absolute top-3 left-3">
+                              <Badge variant="destructive" className="text-xs">
+                                18+
+                              </Badge>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      
-                      {/* Card Content */}
-                      <div className="p-4">
-                        <h3 className="font-semibold text-lg mb-2 line-clamp-2 group-hover:text-primary transition-colors">
-                          {blog.title}
-                        </h3>
                         
-                        <div className="flex items-center justify-between text-sm text-muted-foreground">
-                          <div className="flex items-center gap-3">
+                        {/* Card Content */}
+                        <CardContent className="p-4">
+                          <h3 className="font-bold text-lg mb-3 line-clamp-2 group-hover:text-primary transition-colors leading-tight">
+                            {blog.title}
+                          </h3>
+                          
+                          {/* Blog excerpt if available */}
+                          {blog.excerpt && (
+                            <p className="text-sm text-muted-foreground mb-3 line-clamp-2 leading-relaxed">
+                              {blog.excerpt}
+                            </p>
+                          )}
+
+                          {/* Categories */}
+                          {blog.category && blog.category.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-3">
+                              {blog.category.slice(0, 2).map((cat: string) => (
+                                <Badge key={cat} variant="outline" className="text-xs">
+                                  {cat}
+                                </Badge>
+                              ))}
+                              {blog.category.length > 2 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{blog.category.length - 2}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* Stats */}
+                          <div className="flex items-center justify-between text-sm text-muted-foreground">
+                            <div className="flex items-center gap-4">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {new Date(blog.createdAt).toLocaleDateString('vi-VN', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric'
+                                })}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Eye className="h-3 w-3" />
+                                {blog.viewsCount?.toLocaleString() || '0'}
+                              </span>
+                            </div>
+                            
+                            {/* Comments count */}
                             <span className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {new Date(blog.date).toLocaleDateString('vi-VN')}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Eye className="h-3 w-3" />
-                              {blog.viewsCount?.toLocaleString() || '0'}
+                              <MessageSquare className="h-3 w-3" />
+                              {blog.commentsCount || 0}
                             </span>
                           </div>
-                        </div>
+
+                          {/* Reading time estimate */}
+                          <div className="mt-2 pt-2 border-t border-muted/50">
+                            <span className="text-xs text-muted-foreground">
+                              ~{Math.ceil((blog.content?.length || 0) / 1000)} phút đọc
+                            </span>
+                          </div>
+                        </CardContent>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </Card>
+                  </Link>
                 ))}
               </div>
 
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPrevious={goToPreviousPage}
-                onNext={goToNextPage}
-                onGoToPage={goToPage}
-                currentItemsCount={currentBlogs.length}
-                totalItemsCount={blogs.length}
-              />
+              {totalPages > 1 && (
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="text-sm text-muted-foreground text-center">
+                    <div>
+                      Trang <span className="font-medium">{currentPage}</span> / <span className="font-medium">{totalPages}</span>
+                    </div>
+                    <div className="mt-1">
+                      Hiển thị <span className="font-medium">{currentBlogs.length}</span> / <span className="font-medium">{totalBlogs.toLocaleString()}</span> bài viết
+                    </div>
+                  </div>
+                  
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPrevious={goToPreviousPage}
+                    onNext={goToNextPage}
+                    onGoToPage={goToPage}
+                    currentItemsCount={currentBlogs.length}
+                    totalItemsCount={totalBlogs}
+                  />
+                </div>
+              )}
             </div>
           ) : (
+            /* Empty State */
             <Card className="border-dashed border-2">
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                 <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
@@ -176,12 +360,13 @@ export function ProfileTabs({
           )}
         </TabsContent>
 
+        {/* Followers Tab */}
         <TabsContent value="followers" className="mt-0 space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xl font-bold">Người Theo Dõi</h3>
               <p className="text-sm text-muted-foreground">
-                {followStats.follower} người đang theo dõi
+                {followStats.follower.toLocaleString()} người đang theo dõi
               </p>
             </div>
           </div>
@@ -219,7 +404,7 @@ export function ProfileTabs({
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12 border-2 border-muted">
-                        <AvatarImage src={follower.avatar || "/placeholder.svg"} alt={follower.name} />
+                        <AvatarImage src={getSafeImageUrl(follower.avatar)} alt={follower.name} />
                         <AvatarFallback className="bg-muted font-semibold">
                           {follower.name?.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
@@ -232,13 +417,15 @@ export function ProfileTabs({
                           {follower.name}
                         </Link>
                         <p className="text-sm text-muted-foreground truncate">
-                          @{follower.name?.toLowerCase().replace(/\s+/g, '')}
+                          @{follower.name?.toLowerCase().replace(/\s+/g, '') || 'user'}
                         </p>
                       </div>
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="outline" size="sm">
-                          Xem
-                        </Button>
+                        <Link href={`/users/${follower.id}`}>
+                          <Button variant="outline" size="sm">
+                            Xem
+                          </Button>
+                        </Link>
                       </div>
                     </div>
                   </CardContent>
@@ -248,12 +435,13 @@ export function ProfileTabs({
           )}
         </TabsContent>
 
+        {/* Following Tab */}
         <TabsContent value="following" className="mt-0 space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xl font-bold">Đang Theo Dõi</h3>
               <p className="text-sm text-muted-foreground">
-                Đang theo dõi {followStats.following} người
+                Đang theo dõi {followStats.following.toLocaleString()} người
               </p>
             </div>
           </div>
@@ -291,7 +479,7 @@ export function ProfileTabs({
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12 border-2 border-muted">
-                        <AvatarImage src={u.avatar || "/placeholder.svg"} alt={u.name} />
+                        <AvatarImage src={getSafeImageUrl(u.avatar)} alt={u.name} />
                         <AvatarFallback className="bg-muted font-semibold">
                           {u.name?.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
@@ -304,13 +492,15 @@ export function ProfileTabs({
                           {u.name}
                         </Link>
                         <p className="text-sm text-muted-foreground truncate">
-                          @{u.name?.toLowerCase().replace(/\s+/g, '')}
+                          @{u.name?.toLowerCase().replace(/\s+/g, '') || 'user'}
                         </p>
                       </div>
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="outline" size="sm">
-                          Xem
-                        </Button>
+                        <Link href={`/users/${u.id}`}>
+                          <Button variant="outline" size="sm">
+                            Xem
+                          </Button>
+                        </Link>
                       </div>
                     </div>
                   </CardContent>

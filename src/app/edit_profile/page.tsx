@@ -67,7 +67,6 @@ export default function ProfilePage() {
     if (!file) return
 
     try {
-      // Mock upload - thay bằng real upload sau
       await new Promise(resolve => setTimeout(resolve, 1000))
       const url = URL.createObjectURL(file)
       setAvatarPreview(url)

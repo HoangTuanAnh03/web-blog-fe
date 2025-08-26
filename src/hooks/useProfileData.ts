@@ -96,28 +96,31 @@ export function useProfileData(userId: string) {
 
   // 2. Fetch user blogs
   useEffect(() => {
-    async function fetchUserBlogs() {
-      if (activeTab !== "posts") return
-      try {
-        setIsLoadingBlogs(true)
-        const res = await fetch(`https://api.sportbooking.site/blog/post/user/${userId}`, {
+  async function fetchUserBlogs() {
+    if (activeTab !== "posts") return
+    try {
+      setIsLoadingBlogs(true)
+      const res = await fetch(
+        `https://api.sportbooking.site/blog/post/user/${userId}?page=${currentPage}`,
+        {
           headers: getAuthHeaders()
-        })
-        const json = await res.json()
-        
-        if (json.code === 200 && json.data) {
-          setBlogs(json.data.content || [])
-          setTotalBlogs(json.data.totalElements || 0)
         }
-      } catch (error) {
-        console.error("Error fetching user blogs:", error)
-      } finally {
-        setIsLoadingBlogs(false)
+      )
+      const json = await res.json()
+      if (json.code === 200 && json.data) {
+        setBlogs(json.data.content || [])
+        setTotalBlogs(json.data.totalElements || 0)
       }
+    } catch (error) {
+      console.error("Error fetching user blogs:", error)
+    } finally {
+      setIsLoadingBlogs(false)
     }
+  }
 
-    fetchUserBlogs()
-  }, [activeTab, currentPage, pageSize, userId])
+  fetchUserBlogs()
+}, [activeTab, currentPage, pageSize, userId])
+
 
   // 3. Fetch follow stats
   useEffect(() => {

@@ -53,7 +53,6 @@ class ApiService {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${this.accessToken}`,
-          // 'X-Auth-User-Id': '123-123-123'
         },
         ...options,
       });
@@ -75,7 +74,7 @@ class ApiService {
     );
   }
 
-  async getUserBlogs(userId: string, page = 0, size = 10) {
+  async getUserBlogs(userId: string, page = 0) {
     return this.fetchApi<ApiResponse<PageResponse<PostSummaryResponse>>>(
       `/blog/post/user/${userId}?page=${page}`
     );
@@ -138,7 +137,8 @@ class ApiService {
       }
     }
 
-    return this.fetchApi<PageResponse<PostSummaryResponse>>(url);
+    // return this.fetchApi<PageResponse<PostSummaryResponse>>(url);
+    return this.fetchApi<ApiResponse<PageResponse<PostSummaryResponse>>>(url);
   }
 
   async getTopics() {
@@ -150,7 +150,7 @@ class ApiService {
   }
 
   async getBlogDetail(id: string) {
-    return this.fetchApi<PostResponse>(`/blog/post/${id}`);
+    return this.fetchApi<ApiResponse<PostResponse>>(`/blog/post/${id}`);
   }
 
   async fetchNotifications() {
@@ -178,6 +178,28 @@ class ApiService {
   async getMyInf() {
     return this.fetchApi<ApiResponse<UserUpdateRequest>>(`/users/my-info`);
   }
+
+  async deleteBlog(postId: string) {
+  return this.fetchApi<ApiResponse<any>>(`/blog/post/delete/${postId}`, {
+    method: "DELETE",
+  });
+}
+
+async updateBlog(
+  postId: string, 
+  updateData: {
+    title?: string
+    content?: string
+    cids?: number[]
+    hashtags?: string[]
+    cover?: string | null
+  }
+) {
+  return this.fetchApi<ApiResponse<PostResponse>>(`/blog/post/${postId}`, {
+    method: "PUT",
+    body: JSON.stringify(updateData),
+  });
+}
 }
 
 export const apiService = ApiService.getInstance();

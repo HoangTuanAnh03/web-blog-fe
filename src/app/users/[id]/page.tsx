@@ -60,6 +60,7 @@ export default function EditProfilePage() {
                 isLoadingFollowing={isLoadingFollowing}
                 profile={profile}
                 totalBlogs={totalBlogs}
+                userId={userId}
               />
             </div>
           </section>

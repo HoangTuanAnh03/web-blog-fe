@@ -18,11 +18,15 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 export function SiteHeader() {
   const isAuthenticated =
     typeof window !== "undefined" && !!localStorage.getItem("authState");
-
-  const handleLogout = () => {
-    console.log("Logout clicked");
-    localStorage.removeItem("authState");
-    window.location.reload();
+const handleLogout = () => {
+    try {
+      localStorage.removeItem("authState");
+      sessionStorage.clear();
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Logout error:", error);
+      window.location.reload();
+    }
   };
 
   return (
@@ -48,7 +52,7 @@ export function SiteHeader() {
                 <Link href="/blogs/new" className="text-foreground hover:text-primary transition-colors">
                   Viết Bài
                 </Link>
-                <Link href="/users/" className="text-foreground hover:text-primary transition-colors">
+                <Link href="/users/my-info" className="text-foreground hover:text-primary transition-colors">
                   Hồ Sơ
                 </Link>
               </nav>
@@ -93,7 +97,7 @@ export function SiteHeader() {
                 <DropdownMenuLabel className="font-semibold">Tài Khoản Của Tôi</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/profile" className="cursor-pointer">
+                  <Link href="/users/my-info" className="cursor-pointer">
                     <User className="mr-3 h-4 w-4" />
                     Hồ Sơ
                   </Link>

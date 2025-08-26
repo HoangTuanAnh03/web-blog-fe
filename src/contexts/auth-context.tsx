@@ -1,5 +1,6 @@
 "use client";
 
+import { apiService } from "@/lib/api-service";
 import {
   createContext,
   useContext,
@@ -82,32 +83,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [authState]);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await response.json();
-      if (data.code === 200) {
-        const newAuthState = {
-          user: data.data.user,
-          accessToken: data.data.access_token,
-          refreshToken: data.data.refresh_token,
-        };
-        setAuthState(newAuthState);
-        localStorage.setItem("authState", JSON.stringify(newAuthState));
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error("Login error:", error);
-      return false;
+  // contexts/auth-context.tsx - Sửa hàm login
+const login = async (email: string, password: string): Promise<boolean> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    });
+    
+    const data = await response.json();
+    
+    if (data.code === 200) {
+      const newAuthState = {
+        user: data.data.user,
+        accessToken: data.data.access_token,
+        refreshToken: data.data.refresh_token,
+      };
+      setAuthState(newAuthState);
+      localStorage.setItem("authState", JSON.stringify(newAuthState));
+      apiService.reloadAccessToken();
+      return true;
     }
-  };
+    return false;
+  } catch (error) {
+    console.error("Login error:", error);
+    return false;
+  }
+};
 
   const register = async (userData: RegisterData): Promise<boolean> => {
     try {
