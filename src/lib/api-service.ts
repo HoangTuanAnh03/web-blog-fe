@@ -180,26 +180,26 @@ class ApiService {
   }
 
   async deleteBlog(postId: string) {
-  return this.fetchApi<ApiResponse<any>>(`/blog/post/delete/${postId}`, {
-    method: "DELETE",
-  });
-}
-
-async updateBlog(
-  postId: string, 
-  updateData: {
-    title?: string
-    content?: string
-    cids?: number[]
-    hashtags?: string[]
-    cover?: string | null
+    return this.fetchApi<ApiResponse<any>>(`/blog/post/delete/${postId}`, {
+      method: "DELETE",
+    });
   }
-) {
-  return this.fetchApi<ApiResponse<PostResponse>>(`/blog/post/${postId}`, {
-    method: "PUT",
-    body: JSON.stringify(updateData),
-  });
-}
+
+  async updateBlog(
+    postId: string,
+    updateData: {
+      title?: string;
+      content?: string;
+      cids?: number[];
+      hashtags?: string[];
+      cover?: string | null;
+    }
+  ) {
+    return this.fetchApi<ApiResponse<PostResponse>>(`/blog/post/${postId}`, {
+      method: "PUT",
+      body: JSON.stringify(updateData),
+    });
+  }
 }
 
 export const apiService = ApiService.getInstance();
