@@ -34,7 +34,19 @@ export default function VerifyRegisterPage() {
           return;
         }
 
-        const success = await verifyRegistration(code);
+        const response = await fetch(
+          `https://api.sportbooking.site/auth/verifyRegister?code=${code}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        const data = await response.json();
+
+        const success = data.code === 200;
+
         setIsSuccess(success);
         if (!success) {
           setErrorMessage(
@@ -56,7 +68,7 @@ export default function VerifyRegisterPage() {
   }, [searchParams, verifyRegistration]);
 
   const handleContinue = () => {
-    router.push("/");
+    router.push("/login");
   };
 
   const handleRetry = () => {
@@ -110,7 +122,7 @@ export default function VerifyRegisterPage() {
         <CardFooter className="flex justify-center">
           {isVerifying ? null : isSuccess ? (
             <Button onClick={handleContinue} className="w-full">
-              Tiếp tục đến trang chủ
+              Tiếp tục đăng nhập
             </Button>
           ) : (
             <div className="flex flex-col w-full gap-2">
