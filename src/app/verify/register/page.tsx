@@ -34,20 +34,7 @@ export default function VerifyRegisterPage() {
           return;
         }
 
-        const response = await fetch(
-          `https://api.sportbooking.site/auth/verifyRegister?code=${code}`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        const data = await response.json();
-        console.log("🚀 ~ verifyCode ~ data:", data);
-
-        const success = data.code === 200;
-
+        const success = await verifyRegistration(code);
         setIsSuccess(success);
         if (!success) {
           setErrorMessage(
