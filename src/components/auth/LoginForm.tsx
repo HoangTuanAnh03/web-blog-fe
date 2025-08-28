@@ -65,9 +65,9 @@ export function LoginForm() {
         });
         // await apiService.reloadAccessToken?.();
         router.refresh();
-        setTimeout(() => {
-          router.push("/blogs");
-        }, 500);
+        localStorage.removeItem("authState");
+      sessionStorage.clear();
+      window.location.href = "/login";
       } else {
         toast({
           title: "Đăng nhập thất bại",

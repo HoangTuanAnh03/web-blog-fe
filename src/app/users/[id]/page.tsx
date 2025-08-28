@@ -4,10 +4,20 @@ import { ProfileSidebar } from "@/components/profile/profile-sidebar"
 import { ProfileTabs } from "@/components/profile/profile-tabs"
 import { useProfileData } from "@/hooks/useProfileData"
 import { useAuth } from "@/contexts/auth-context"
+import { useParams, useRouter } from "next/navigation"
+import { useEffect } from "react"
 
 export default function EditProfilePage() { 
-  const { user } = useAuth() 
-  const userId = user?.id || ""
+  const params = useParams();
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuth(); 
+  const userId = params.id as string
+
+  useEffect(() => {
+    if (isAuthenticated && user && userId === user.id) {
+      router.replace('/users/my-info');
+    }
+  }, [isAuthenticated, user, userId, router]);
 
   const {
     profile, blogs, followers, following, followStats,
@@ -16,6 +26,14 @@ export default function EditProfilePage() {
     error, totalBlogs,
     setActiveTab, activeTab, toggleFollow, isCurrentUser,
   } = useProfileData(userId)
+
+  if (isAuthenticated && user && userId === user.id) {
+    return (
+      <div className="container mx-auto py-8 text-center">
+        <div className="animate-pulse text-muted-foreground">Đang chuyển hướng...</div>
+      </div>
+    )
+  }
 
   // Loading & Error
   if (isLoadingProfile) return <div className="container mx-auto py-8 text-center"><div className="animate-pulse text-muted-foreground">Đang tải dữ liệu...</div></div>
@@ -54,7 +72,7 @@ export default function EditProfilePage() {
                 followers={followers}
                 following={following}
                 followStats={followStats}
-                isCurrentUser={isCurrentUser}
+                isCurrentUser={!!isCurrentUser}
                 isLoadingBlogs={isLoadingBlogs}
                 isLoadingFollowers={isLoadingFollowers}
                 isLoadingFollowing={isLoadingFollowing}

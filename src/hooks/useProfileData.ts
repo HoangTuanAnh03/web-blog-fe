@@ -1,18 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { apiService } from "@/lib/api-service";
-
-interface UserResponse {
-  id: string;
-  email: string;
-  name: string;
-  gender: "MALE" | "FEMALE";
-  dob: string;
-  avatar: string | null;
-  no_password: boolean;
-  is_locked: boolean;
-}
+import { ApiResponse, Gender, UserResponse, UserUpdateRequest } from "@/types/api";
 
 interface PostSummaryResponse {
   id: string;
@@ -26,12 +16,10 @@ interface FollowStats {
   following: number;
 }
 
-// Interface cho update request
-interface UserUpdateRequest {
-  name: string;
-  avatar: string | null;
-  gender: "MALE" | "FEMALE";
-  dob: string;
+// Extended interface for profile with additional fields
+interface ExtendedUserProfile extends UserResponse {
+  no_password?: boolean;
+  is_locked?: boolean;
 }
 
 export function useProfileData(userId: string) {
@@ -51,7 +39,7 @@ export function useProfileData(userId: string) {
   const [error, setError] = useState<string | null>(null);
 
   // Data states
-  const [profile, setProfile] = useState<UserResponse | null>(null);
+  const [profile, setProfile] = useState<ExtendedUserProfile | null>(null);
   const [blogs, setBlogs] = useState<PostSummaryResponse[]>([]);
   const [followers, setFollowers] = useState<any[]>([]);
   const [following, setFollowing] = useState<any[]>([]);
@@ -62,7 +50,10 @@ export function useProfileData(userId: string) {
   const [isFollowing, setIsFollowing] = useState(false);
   const [totalBlogs, setTotalBlogs] = useState(0);
 
-  const isCurrentUser = isAuthenticated && user?.id === userId;
+  // const isCurrentUser = isAuthenticated && user?.id === userId ;  
+const isCurrentUser = isAuthenticated && user && userId && (
+  user.id === userId   
+);
 
   const getAuthHeaders = () => {
     const token = JSON.parse(
@@ -75,22 +66,54 @@ export function useProfileData(userId: string) {
   };
 
   // 1. Fetch user profile info
+  const fetchMyProfile = async () => {
+    const myInfoResponse = await apiService.getMyInf();
+    
+    if (myInfoResponse.code === 200 && myInfoResponse.data) {
+      const userProfile: ExtendedUserProfile = {
+        id: myInfoResponse.data.id,
+        email: "", 
+        name: myInfoResponse.data.name,
+        gender: myInfoResponse.data.gender,
+        dob: myInfoResponse.data.dob,
+        avatar: myInfoResponse.data.avatar,
+        no_password: false,
+        is_locked: false,
+      };
+      setProfile(userProfile);
+    } else {
+      setError("Không thể tải thông tin người dùng");
+    }
+  };
+
+  const fetchOtherUser = async (targetUserId: string) => {
+    const userResponse = await apiService.getUserById(targetUserId);
+    
+    if (userResponse.code === 200 && userResponse.data) {
+      setProfile(userResponse.data);
+    } else {
+      setError("Không thể tải thông tin người dùng");
+    }
+  };
+
   useEffect(() => {
     async function fetchUserInfo() {
+      if (!userId) return;
+
       try {
         setIsLoadingProfile(true);
-        const res = await fetch("https://api.sportbooking.site/users/my-info", {
-          headers: getAuthHeaders(),
-        });
-        const json = await res.json();
-
-        if (json.code === 200 && json.data) {
-          setProfile(json.data);
-        } else {
-          setError("Không thể tải thông tin người dùng");
+        setError(null);
+        
+        if (userId === "my-info") {
+          await fetchMyProfile();
+        }
+        else if (isCurrentUser) {
+          await fetchMyProfile();
+        }
+        else {
+          await fetchOtherUser(userId);
         }
       } catch (error) {
-        console.error("Error fetching user profile:", error);
         setError("Đã xảy ra lỗi khi tải thông tin người dùng");
       } finally {
         setIsLoadingProfile(false);
@@ -98,7 +121,9 @@ export function useProfileData(userId: string) {
     }
 
     fetchUserInfo();
-  }, []);
+  }, [userId, isCurrentUser]);
+
+
 
   // 2. Fetch user blogs
   useEffect(() => {

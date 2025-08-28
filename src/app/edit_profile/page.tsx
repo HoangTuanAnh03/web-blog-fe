@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { uploadToNuuls } from "@/lib/uploadToImgur"; // 🔥 Import upload function
 
 interface UserData {
   id: string;
@@ -31,13 +32,14 @@ interface UserData {
   dob: string;
 }
 
-export default function ProfilePage() {
+export default function EditProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
 
   const [user, setUser] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null); // 🔥 Store selected file
 
   const getHeaders = useCallback(() => {
     const token = JSON.parse(
@@ -84,23 +86,43 @@ export default function ProfilePage() {
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    setAvatarFile(file);
+
+    const previewUrl = URL.createObjectURL(file);
+    setAvatarPreview(previewUrl);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const url = URL.createObjectURL(file);
-      setAvatarPreview(url);
-      setUser((prev) => (prev ? { ...prev, avatar: url } : null));
-
-      toast({ title: "Thành công", description: "Đã tải ảnh lên" });
-    } catch {
+      const avatarUrl = await uploadToNuuls(file);
+      
+      setUser((prev) => (prev ? { ...prev, avatar: avatarUrl } : null));
+      
       toast({
-        title: "Lỗi",
-        description: "Không thể tải ảnh",
+        title: "Upload thành công",
+        description: "Ảnh đại diện đã được tải lên",
+      });
+      
+      console.log('🔥 Avatar uploaded successfully:', avatarUrl);
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      toast({
+        title: "Lỗi upload",
+        description: "Không thể tải ảnh lên. Vui lòng thử lại.",
         variant: "destructive",
       });
+      
+      setAvatarFile(null);
+      setAvatarPreview(null);
     }
+  };
+
+  const handleRemoveAvatar = () => {
+    setUser((prev) => (prev ? { ...prev, avatar: null } : null));
+    setAvatarPreview(null);
+    setAvatarFile(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -116,17 +138,21 @@ export default function ProfilePage() {
 
     setIsLoading(true);
     try {
+      const payload = {
+        name: user.name,
+        dob: user.dob,
+        gender: user.gender,
+        ...(user.avatar && !user.avatar.startsWith('blob:') ? { avatar: user.avatar } : {})
+      };
+
+      console.log('🔥 Submitting with payload:', payload);
+
       const res = await fetch(
         `https://api.sportbooking.site/users/${user.id}`,
         {
           method: "PUT",
           headers: getHeaders(),
-          body: JSON.stringify({
-            name: user.name,
-            dob: user.dob,
-            gender: user.gender,
-            avatar: user.avatar,
-          }),
+          body: JSON.stringify(payload),
         }
       );
 
@@ -134,13 +160,15 @@ export default function ProfilePage() {
 
       const json = await res.json();
       if (json.code === 200) {
-        // Update localStorage
         const authState = JSON.parse(localStorage.getItem("authState") || "{}");
-        authState.user = { ...authState.user, ...user };
+        authState.user = { ...authState.user, ...json.data };
         localStorage.setItem("authState", JSON.stringify(authState));
 
         toast({ title: "Thành công", description: "Đã cập nhật thông tin" });
-        router.push(`/users/my-info`);
+        
+        setTimeout(() => {
+          window.location.href = "/users/my-info";
+        }, 1500);
       } else {
         throw new Error(json.message);
       }
@@ -182,12 +210,15 @@ export default function ProfilePage() {
           <Card>
             <CardHeader>
               <CardTitle>Ảnh đại diện</CardTitle>
+              <CardDescription>
+                Chọn ảnh để tải lên (ảnh sẽ được lưu ngay lập tức)
+              </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
               <div className="relative inline-block mb-4">
                 <Avatar className="h-32 w-32">
                   <AvatarImage
-                    src={avatarPreview || user.avatar || undefined}
+                    src={avatarPreview || user.avatar || "/placeholder.svg"}
                     alt={user.name}
                   />
                   <AvatarFallback className="text-2xl">
@@ -204,6 +235,22 @@ export default function ProfilePage() {
                   />
                 </label>
               </div>
+              
+              {avatarFile && (
+                <div className="text-center space-y-2">
+                  <p className="text-sm text-green-600 dark:text-green-400">
+                    ✅ Ảnh đã được tải lên thành công
+                  </p>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleRemoveAvatar}
+                  >
+                    Xóa ảnh
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 

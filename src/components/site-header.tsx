@@ -14,11 +14,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-
+import { useAuth } from "@/contexts/auth-context" 
 export function SiteHeader() {
-  const isAuthenticated =
-    typeof window !== "undefined" && !!localStorage.getItem("authState");
-const handleLogout = () => {
+  const { user, isAuthenticated } = useAuth();
+  const handleLogout = () => {
     try {
       localStorage.removeItem("authState");
       sessionStorage.clear();
@@ -88,13 +87,20 @@ const handleLogout = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full hover:bg-accent/10">
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src="/placeholder.svg" alt="User avatar" />
-                    <AvatarFallback className="bg-primary text-primary-foreground font-semibold">AT</AvatarFallback>
+                    <AvatarImage 
+                      src={user?.avatar || "/placeholder.svg"} 
+                      alt={user?.name || "User avatar"} 
+                    />
+                    <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                      {user?.name ? user.name.substring(0, 2).toUpperCase() : "AT"}
+                    </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="font-semibold">Tài Khoản Của Tôi</DropdownMenuLabel>
+                <DropdownMenuLabel className="font-semibold">
+                  {user?.name || "Tài Khoản Của Tôi"}
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/users/my-info" className="cursor-pointer">
