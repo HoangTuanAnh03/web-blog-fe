@@ -69,16 +69,9 @@ export function useBlogDetail(blogId: string, options: UseBlogDetailOptions = {}
     }
     
     const isUserOwner = blog.userResponse.id === currentUser.userId
-    
-    console.log('🔐 Ownership Check:', {
-      blogAuthorId: blog.userResponse.id,
-      currentUserId: currentUser.userId,
-      isOwner: isUserOwner,
-      blogTitle: blog.title
-    })
 
     return isUserOwner
-  }, [blog?.userResponse?.id, currentUser?.userId, blog?.title])
+  }, [blog?.userResponse?.id, currentUser?.userId])
 
   // Helper function for safe image URLs
   const getSafeImageUrl = useCallback((url: string | null | undefined, fallback = "/placeholder.svg"): string => {
@@ -129,11 +122,6 @@ export function useBlogDetail(blogId: string, options: UseBlogDetailOptions = {}
       }
     }
 
-    console.log('🗑️ Attempting to delete blog:', {
-      blogId: blog.id,
-      blogTitle: blog.title,
-      isOwner
-    })
 
     try {
       setIsDeleting(true)
@@ -141,7 +129,6 @@ export function useBlogDetail(blogId: string, options: UseBlogDetailOptions = {}
 
       const response = await apiService.deleteBlog(blog.id)
       
-      console.log('🗑️ Delete response:', response)
 
       if (response?.code === 200) {
         // Clear local state
@@ -172,7 +159,7 @@ export function useBlogDetail(blogId: string, options: UseBlogDetailOptions = {}
     } finally {
       setIsDeleting(false)
     }
-  }, [blog?.id, blog?.title, isOwner, onDeleted])
+  }, [blog?.id, isOwner, onDeleted])
 
   // ✏️ UPDATE BLOG FUNCTION
   const updateBlog = useCallback(async (updateData: UpdateBlogData): Promise<{
@@ -189,11 +176,6 @@ export function useBlogDetail(blogId: string, options: UseBlogDetailOptions = {}
       }
     }
 
-    console.log('✏️ Attempting to update blog:', {
-      blogId: blog.id,
-      updateData,
-      isOwner
-    })
 
     try {
       setIsUpdating(true)
@@ -201,7 +183,6 @@ export function useBlogDetail(blogId: string, options: UseBlogDetailOptions = {}
 
       const response = await apiService.updateBlog(blog.id, updateData)
       
-      console.log('✏️ Update response:', response)
 
       if (response?.code === 200 && response.data) {
         // Update local state with new data

@@ -122,6 +122,7 @@ export type Gender = "MALE" | "FEMALE" | "OTHER";
 
 
 export interface UserUpdateRequest{
+  email: string;
   id: string;
   name: string;
   dob: string;

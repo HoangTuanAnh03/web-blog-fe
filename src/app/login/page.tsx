@@ -10,7 +10,7 @@ export default function LoginPage() {
   const router = useRouter();
 
   if (isAuthenticated) {
-    router.push("/");
+    router.push("/blogs");
   }
 
   return (

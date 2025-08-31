@@ -14,7 +14,7 @@ export default function HomePage() {
           <Badge variant="default" className="text-base px-4 py-1">BLOG PLATFORM</Badge>
         </div>
         <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent leading-tight max-w-3xl mx-auto drop-shadow">
-          Chào mừng bạn đến với <span className="text-primary">ATBlog</span>
+          Chào mừng bạn đến với <span className="text-primary">Blog</span>
         </h1>
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
           Nơi cộng đồng chia sẻ, học hỏi & lan tỏa tri thức  Kênh blog dành cho lập trình viên và những người yêu công nghệ hiện đại.<br/>

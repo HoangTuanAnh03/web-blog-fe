@@ -101,7 +101,7 @@ class ApiService {
   }
 
   async getBlogSummary(postId: string) {
-    return this.fetchApi<PostSummaryAIResponse>(
+    return this.fetchApi<ApiResponse<PostSummaryAIResponse>>(
       `/blog/post/summary?pid=${postId}`
     );
   }
@@ -199,6 +199,44 @@ class ApiService {
       method: "PUT",
       body: JSON.stringify(updateData),
     });
+  }
+
+  // ===== Comments (NEW) =====
+  /** Tạo bình luận hoặc trả lời (nếu có parentId) */
+  async createComment(payload: {
+    content: string;
+    pid: string; // post id
+    parentId?: string;
+  }) {
+    return this.fetchApi<ApiResponse<Comment>>(`/blog/comment`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  /** Cập nhật bình luận */
+  async updateComment(
+    commentId: string,
+    payload: {
+      content: string;
+      pid: string; // post id
+    }
+  ) {
+    return this.fetchApi<ApiResponse<Comment>>(
+      `/blog/comment/update/${commentId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      }
+    );
+  }
+
+  /** Xoá bình luận */
+  async deleteComment(commentId: string) {
+    return this.fetchApi<ApiResponse<any>>(
+      `/blog/comment/delete/${commentId}`,
+      { method: "DELETE" }
+    );
   }
 }
 

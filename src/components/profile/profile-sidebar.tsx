@@ -7,6 +7,19 @@ export function ProfileSidebar({
   profile, totalBlogs, blogs, followStats, isFollowing, toggleFollow,
   isCurrentUser, isTogglingFollow, setActiveTab
 }: any) {
+  const nf = new Intl.NumberFormat("vi-VN")
+
+const viewsPageTotal = Array.isArray(blogs)
+  ? blogs.reduce((sum: number, b: any) => sum + (Number(b?.viewsCount) || 0), 0)
+  : 0
+
+const avgViewsPerPost = totalBlogs > 0
+  ? Math.round(viewsPageTotal / Math.min(totalBlogs, blogs?.length || 0))
+  : 0
+
+const topPost = Array.isArray(blogs) && blogs.length > 0
+  ? [...blogs].sort((a: any, b: any) => (b?.viewsCount || 0) - (a?.viewsCount || 0))[0]
+  : null
   return (
     <div className="lg:col-span-1 space-y-6">
       <div className="bg-white rounded shadow-md">
@@ -53,7 +66,6 @@ export function ProfileSidebar({
           )}
         </div>
       </div>
-      {/* Thống kê và Phân tích */}
       <div className="bg-white rounded shadow-md">
         <div className="p-6 grid grid-cols-2 gap-4">
           <div className="space-y-1">
@@ -74,14 +86,31 @@ export function ProfileSidebar({
           </div>
         </div>
       </div>
-      <div className="bg-white rounded shadow-md">
-        <div className="p-6 flex items-center justify-center h-40 bg-muted rounded-md">
-          <div className="flex flex-col items-center gap-2 text-muted-foreground">
-            <BarChart3 className="h-8 w-8" />
-            <span className="text-sm">Xem phân tích chi tiết</span>
-          </div>
+<div className="bg-white rounded shadow-md">
+      <div className="p-6 bg-gray-50 rounded-md border border-gray-200">
+        <div className="flex items-center gap-2 text-gray-600 mb-4 justify-center">
+          <BarChart3 className="h-5 w-5" />
+          <span className="text-sm font-medium">Thông tin nổi bật</span>
+        </div>
+
+        <div className="mt-4 p-3 rounded-md bg-white border">
+          <div className="text-xs text-gray-500 mb-1">Trung bình view/bài (trên trang)</div>
+          <div className="text-lg font-medium">{nf.format(avgViewsPerPost)}</div>
+
+          {topPost && (
+            <div className="mt-3">
+              <div className="text-xs text-gray-500">Bài nổi bật (trang)</div>
+              <div className="text-sm font-medium truncate" title={topPost.title}>
+                {topPost.title}
+              </div>
+              <div className="text-xs text-gray-500">
+                {nf.format(topPost.viewsCount || 0)} lượt xem
+              </div>
+            </div>
+          )}
         </div>
       </div>
+    </div>
     </div>
   )
 }

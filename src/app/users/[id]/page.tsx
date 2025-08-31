@@ -1,50 +1,61 @@
-"use client"
+"use client";
 
-import { ProfileSidebar } from "@/components/profile/profile-sidebar"
-import { ProfileTabs } from "@/components/profile/profile-tabs"
-import { useProfileData } from "@/hooks/useProfileData"
-import { useAuth } from "@/contexts/auth-context"
-import { useParams, useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/auth-context";
+import { useProfileData } from "@/hooks/useProfileData";
+import { ProfileSidebar } from "@/components/profile/profile-sidebar";
+import { ProfileTabs } from "@/components/profile/profile-tabs";
 
-export default function EditProfilePage() { 
+export default function EditProfilePage() {
   const params = useParams();
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth(); 
-  const userId = params.id as string
+  const { user, isAuthenticated } = useAuth();
+  const userId = params.id as string;
 
   useEffect(() => {
     if (isAuthenticated && user && userId === user.id) {
-      router.replace('/users/my-info');
+      router.replace("/users/my-info");
     }
   }, [isAuthenticated, user, userId, router]);
 
   const {
-    profile, blogs, followers, following, followStats,
-    isFollowing, isLoadingProfile, isLoadingBlogs,
-    isLoadingFollowers, isLoadingFollowing, isTogglingFollow,
-    error, totalBlogs,
-    setActiveTab, activeTab, toggleFollow, isCurrentUser,
-  } = useProfileData(userId)
+    profile,
+    blogs,
+    followers,
+    following,
+    followStats,
+    isFollowing,
+    isLoadingProfile,
+    isLoadingBlogs,
+    isLoadingFollowers,
+    isLoadingFollowing,
+    isTogglingFollow,
+    error,
+    totalBlogs,
+    setActiveTab,
+    activeTab,
+    toggleFollow,
+    isCurrentUser,
+  } = useProfileData(userId);
 
-  if (isAuthenticated && user && userId === user.id) {
+  // Loading state
+  if (isLoadingProfile)
     return (
       <div className="container mx-auto py-8 text-center">
-        <div className="animate-pulse text-muted-foreground">Đang chuyển hướng...</div>
+        <div className="animate-pulse text-muted-foreground">Đang tải dữ liệu...</div>
       </div>
-    )
-  }
+    );
 
-  // Loading & Error
-  if (isLoadingProfile) return <div className="container mx-auto py-8 text-center"><div className="animate-pulse text-muted-foreground">Đang tải dữ liệu...</div></div>
-  if (error || !profile) return (
-    <div className="container mx-auto py-8">
-      <div className="border border-red-200 bg-red-50 rounded-lg p-4 mb-4 max-w-lg mx-auto">
-        <h3 className="text-red-800 font-semibold text-lg mb-2">Lỗi</h3>
-        <p className="text-red-700">{error || "Không tìm thấy người dùng này."}</p>
+  if (error || !profile)
+    return (
+      <div className="container mx-auto py-8">
+        <div className="border border-red-200 bg-red-50 rounded-lg p-4 mb-4 max-w-lg mx-auto">
+          <h3 className="text-red-800 font-semibold text-lg mb-2">Lỗi</h3>
+          <p className="text-red-700">{error || "Không tìm thấy người dùng này."}</p>
+        </div>
       </div>
-    </div>
-  )
+    );
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8">
@@ -63,6 +74,7 @@ export default function EditProfilePage() {
               setActiveTab={setActiveTab}
             />
           </section>
+
           <section className="lg:col-span-3">
             <div className="relative rounded-lg shadow bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 md:p-6 space-y-4 min-h-[600px]">
               <ProfileTabs
@@ -85,5 +97,5 @@ export default function EditProfilePage() {
         </div>
       </div>
     </main>
-  )
+  );
 }

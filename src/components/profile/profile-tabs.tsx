@@ -263,7 +263,7 @@ export function ProfileTabs({
                           {blog.hasSensitiveContent && (
                             <div className="absolute top-3 left-3">
                               <Badge variant="destructive" className="text-xs">
-                                18+
+                                Nhạy cảm
                               </Badge>
                             </div>
                           )}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useState } from "react"
-import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
 import {
   AlertTriangle,
   FileText,
@@ -20,14 +20,18 @@ import { AuthorBio } from "@/components/blog_detail/AuthorBio"
 import { BlogSidebar } from "@/components/blog_detail/BlogSidebar"
 import { RelatedPosts } from "@/components/blog_detail/RelatedPosts"
 import { toast } from "@/hooks/use-toast"
+import { apiService } from "@/lib/api-service"
 
 interface BlogPageProps {
   params: { id: string }
 }
 
 export default function BlogPage({ params }: BlogPageProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { isAuthenticated } = useAuth()
   const contentRef = useRef<HTMLDivElement>(null)
+
   const { 
     blog, 
     isLoading, 
@@ -43,9 +47,59 @@ export default function BlogPage({ params }: BlogPageProps) {
   const [showRawContent, setShowRawContent] = useState(false)
   const [showAISummary, setShowAISummary] = useState(false)
 
+  const [aiSummary, setAiSummary] = useState<string | null>(null)
+  const [loadingSummary, setLoadingSummary] = useState(false)
+
   const getSafeImageUrl = (url: string | null | undefined, fallback = "/placeholder.svg") => {
     if (!url || url === "string" || url === "null") return fallback
     return url.startsWith("http") || url.startsWith("/") ? url : fallback
+  }
+
+const handleAISummary = async () => {
+  if (!blog?.id) return
+  setShowAISummary(true)
+  setLoadingSummary(true)
+  setAiSummary(null)
+  try {
+    const res = await apiService.getBlogSummary(blog.id)
+    // res có dạng ApiResponse<{ summary: string }>
+    if (res?.code === 200 && res.data?.summary) {
+      setAiSummary(res.data.summary)
+    } else {
+      setAiSummary("Không thể tạo tóm tắt cho bài viết này.")
+    }
+  } catch (e) {
+    setAiSummary("Lỗi khi gọi API tóm tắt.")
+  } finally {
+    setLoadingSummary(false)
+  }
+}
+
+  const handleBack = () => {
+    const from = searchParams.get("from")
+    const uid = searchParams.get("uid")
+
+    if (from === "profile") {
+      if (uid) router.push(`/profile/${uid}`)
+      else router.push(`/profile`)
+      return
+    }
+    if (from === "blogs") {
+      router.push(`/blogs`)
+      return
+    }
+
+    if (typeof window !== "undefined" && document.referrer) {
+      try {
+        const ref = new URL(document.referrer)
+        if (ref.origin === window.location.origin) {
+          router.back()
+          return
+        }
+      } catch {}
+    }
+
+    router.push("/blogs")
   }
 
   const handleShare = async () => {
@@ -55,9 +109,7 @@ export default function BlogPage({ params }: BlogPageProps) {
           title: blog.title,
           url: window.location.href,
         })
-      } catch (error) {
-        console.log("Share cancelled")
-      }
+      } catch {}
     } else {
       navigator.clipboard.writeText(window.location.href)
     }
@@ -65,7 +117,6 @@ export default function BlogPage({ params }: BlogPageProps) {
 
   const handleEdit = () => {
     if (blog?.id) {
-      console.log("handleEdit", blog.id)
       window.location.href = `/blogs/edit/${blog.id}`
     }
   }
@@ -120,11 +171,9 @@ export default function BlogPage({ params }: BlogPageProps) {
                 {error || "Bài viết này không tồn tại hoặc đã bị xóa."}
               </p>
             </div>
-            <Button variant="outline" asChild className="mt-8">
-              <Link href="/blogs">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Quay lại danh sách
-              </Link>
+            <Button variant="outline" onClick={handleBack} className="mt-8">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Quay lại
             </Button>
           </div>
         </div>
@@ -138,29 +187,25 @@ export default function BlogPage({ params }: BlogPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Improved Navigation */}
+      {/* Nav */}
       <nav className="bg-white border-b shadow-sm sticky top-0 z-40">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Button variant="ghost" asChild className="gap-2 hover:bg-gray-100">
-              <Link href="/blogs">
-                <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Quay lại danh sách</span>
-                <span className="sm:hidden">Quay lại</span>
-              </Link>
+            <Button variant="ghost" onClick={handleBack} className="gap-2 hover:bg-gray-100">
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Quay lại</span>
+              <span className="sm:hidden">Back</span>
             </Button>
           </div>
         </div>
       </nav>
 
-      {/* Main Content */}
+      {/* Main */}
       <main className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           
-          {/* Content Area */}
+          {/* Content */}
           <div className="lg:col-span-2 xl:col-span-3 space-y-8">
-            
-            {/* Blog Header Card */}
             <div className="bg-white rounded-lg shadow-sm border p-6 sm:p-8">
               <BlogHeader 
                 blog={blog}
@@ -170,7 +215,6 @@ export default function BlogPage({ params }: BlogPageProps) {
               />
             </div>
 
-            {/* Sensitive Content Warning */}
             {blog.hasSensitiveContent && (
               <Alert className="border-amber-200 bg-amber-50">
                 <AlertTriangle className="h-5 w-5 text-amber-600" />
@@ -184,13 +228,13 @@ export default function BlogPage({ params }: BlogPageProps) {
               </Alert>
             )}
 
-            {/* Article Actions Card */}
+            {/* Actions */}
             <div className="bg-white rounded-lg shadow-sm border p-4">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex gap-3">
                   <Button 
                     variant="outline" 
-                    onClick={() => setShowAISummary(true)}
+                    onClick={handleAISummary}     // ← dùng service có sẵn
                     className="gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
                   >
                     <Sparkles className="h-4 w-4" />
@@ -206,9 +250,26 @@ export default function BlogPage({ params }: BlogPageProps) {
                   )}
                 </div>
               </div>
+
+              {/* NEW: Hộp hiển thị tóm tắt */}
+              {showAISummary && (
+                <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="text-blue-800 font-semibold mb-2">Tóm tắt AI</h3>
+                  {loadingSummary ? (
+                    <div className="flex items-center gap-2 text-blue-700 text-sm">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Đang tạo tóm tắt...
+                    </div>
+                  ) : (
+                    <p className="text-blue-700 text-sm whitespace-pre-line">
+                      {aiSummary}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* Blog Content Card */}
+            {/* Content */}
             <div className="bg-white rounded-lg shadow-sm border">
               <BlogContent 
                 blog={blog}
@@ -218,7 +279,7 @@ export default function BlogPage({ params }: BlogPageProps) {
               />
             </div>
 
-            {/* Author Bio Card */}
+            {/* Author */}
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <AuthorBio 
                 author={blog.userResponse}
@@ -227,12 +288,12 @@ export default function BlogPage({ params }: BlogPageProps) {
               />
             </div>
 
-            {/* Comments Section */}
+            {/* Comments */}
             <div className="bg-white rounded-lg shadow-sm border">
-              <CommentSection blogId={blog.id} comments={blog.comments} />
+              <CommentSection blogId={blog.id} comments={blog.comments ?? []} />
             </div>
 
-            {/* Related Posts */}
+            {/* Related */}
             {blog.relatedPosts && blog.relatedPosts.length > 0 && (
               <div className="bg-white rounded-lg shadow-sm border p-6">
                 <RelatedPosts posts={blog.relatedPosts} />

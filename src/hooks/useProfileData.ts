@@ -156,9 +156,6 @@ const isCurrentUser = isAuthenticated && user && userId && (
   useEffect(() => {
     async function fetchFollowStats() {
       try {
-        // const res = await fetch(`https://api.sportbooking.site/users/${userId}/follow-stats`, {
-        //   headers: getAuthHeaders()
-        // })
         const response = await apiService.getUserFollowStats(userId);
 
         if (response.code === 200 && response.data) {
@@ -181,24 +178,18 @@ const isCurrentUser = isAuthenticated && user && userId && (
   useEffect(() => {
     async function fetchFollowers() {
       if (activeTab !== "followers" || followers.length > 0) return;
-      try {
-        setIsLoadingFollowers(true);
-        const res = await fetch(
-          `https://api.sportbooking.site/users/${userId}/followers`,
-          {
-            headers: getAuthHeaders(),
-          }
-        );
-        const json = await res.json();
+try {
+  setIsLoadingFollowers(true);
+  const res = await apiService.getUserFollowStats(userId);
+  if (res.code === 200 && res.data) {
+    setFollowers(res.data.follower || []);
+  }
+} catch (error) {
+  console.error("Error fetching followers:", error);
+} finally {
+  setIsLoadingFollowers(false);
+}
 
-        if (json.code === 200 && json.data) {
-          setFollowers(json.data);
-        }
-      } catch (error) {
-        console.error("Error fetching followers:", error);
-      } finally {
-        setIsLoadingFollowers(false);
-      }
     }
 
     fetchFollowers();
@@ -208,24 +199,18 @@ const isCurrentUser = isAuthenticated && user && userId && (
   useEffect(() => {
     async function fetchFollowing() {
       if (activeTab !== "following" || following.length > 0) return;
-      try {
-        setIsLoadingFollowing(true);
-        const res = await fetch(
-          `https://api.sportbooking.site/users/${userId}/following`,
-          {
-            headers: getAuthHeaders(),
-          }
-        );
-        const json = await res.json();
+try {
+  setIsLoadingFollowing(true);
+  const res = await apiService.getUserFollowStats(userId);
+  if (res.code === 200 && res.data) {
+    setFollowing(res.data.following || []);
+  }
+} catch (error) {
+  console.error("Error fetching following:", error);
+} finally {
+  setIsLoadingFollowing(false);
+}
 
-        if (json.code === 200 && json.data) {
-          setFollowing(json.data);
-        }
-      } catch (error) {
-        console.error("Error fetching following:", error);
-      } finally {
-        setIsLoadingFollowing(false);
-      }
     }
 
     fetchFollowing();
@@ -234,29 +219,22 @@ const isCurrentUser = isAuthenticated && user && userId && (
   // 6. Check follow status (if not current user)
   useEffect(() => {
     async function fetchFollowStatus() {
-      if (!isAuthenticated || isCurrentUser) return;
-      try {
-        const res = await fetch(
-          `https://api.sportbooking.site/users/${userId}/is-following`,
-          {
-            headers: getAuthHeaders(),
-          }
-        );
-        const json = await res.json();
-
-        if (json.code === 200) {
-          setIsFollowing(json.data || false);
-        }
-      } catch (error) {
-        console.error("Error fetching follow status:", error);
-      }
+if (!isAuthenticated || isCurrentUser) return;
+try {
+  const res = await apiService.checkFollowStatus(userId, "");
+  if (res.code === 200) {
+    setIsFollowing(Boolean(res.data));
+  }
+} catch (error) {
+  console.error("Error fetching follow status:", error);
+}
     }
 
     fetchFollowStatus();
   }, [userId, isAuthenticated, isCurrentUser]);
 
-  // Toggle follow/unfollow
-  const toggleFollow = async () => {
+  //7. Toggle follow/unfollow
+const toggleFollow = async () => {
     if (!isAuthenticated) {
       router.push("/login");
       return;
@@ -264,16 +242,8 @@ const isCurrentUser = isAuthenticated && user && userId && (
 
     try {
       setIsTogglingFollow(true);
-      const res = await fetch(
-        `https://api.sportbooking.site/users/${userId}/toggle-follow`,
-        {
-          method: "POST",
-          headers: getAuthHeaders(),
-        }
-      );
-      const json = await res.json();
-
-      if (json.code === 200) {
+      const res = await apiService.toggleFollow(userId, isFollowing);
+      if (res.code === 200) {
         setIsFollowing(!isFollowing);
         setFollowStats((prev) => ({
           ...prev,
@@ -284,7 +254,7 @@ const isCurrentUser = isAuthenticated && user && userId && (
         if (isFollowing) {
           setFollowers((prev) => prev.filter((f) => f.id !== user?.id));
         } else {
-          setFollowers((prev) => [...prev, user]);
+          setFollowers((prev) => (user ? [...prev, user] : prev));
         }
       }
     } catch (error) {

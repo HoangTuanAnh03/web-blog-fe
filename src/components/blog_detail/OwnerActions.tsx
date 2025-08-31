@@ -62,7 +62,7 @@ export function OwnerActions({
             </div>
           </div>
 
-          <button
+          {/* <button
             onClick={onEdit}
             disabled={isBusy}
             className={cn(
@@ -87,7 +87,7 @@ export function OwnerActions({
                 {isUpdating ? "Đang cập nhật..." : "Chỉnh sửa bài viết"}
               </span>
             </div>
-          </button>
+          </button> */}
 
           <AlertDialog>
             <AlertDialogTrigger asChild>

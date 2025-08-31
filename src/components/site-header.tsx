@@ -43,7 +43,7 @@ export function SiteHeader() {
               <nav className="grid gap-6 text-lg font-medium mt-6">
                 <Link href="/" className="flex items-center gap-3 text-xl font-bold text-primary">
                   <BookIcon className="h-6 w-6" />
-                  <span>ATBlog</span>
+                  <span>Blog</span>
                 </Link>
                 <Link href="/blogs" className="text-foreground hover:text-primary transition-colors">
                   Khám Phá
@@ -61,7 +61,7 @@ export function SiteHeader() {
           <Link href="/" className="flex items-center gap-3 group">
             <BookIcon className="h-7 w-7 text-primary group-hover:text-accent transition-colors duration-200" />
             <span className="font-black text-xl text-foreground group-hover:text-primary transition-colors duration-200">
-              ATBlog
+              Blog
             </span>
           </Link>
 
