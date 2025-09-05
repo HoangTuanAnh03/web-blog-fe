@@ -1,109 +1,115 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useToast } from "@/hooks/use-toast"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/auth-context"
-import { useBlog } from "@/hooks/useBlog"
+import { useState, useEffect, useRef } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/auth-context";
+import { useBlog } from "@/hooks/useBlog";
 
-import { Loader2 } from "lucide-react"
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { uploadToNuuls } from "@/lib/uploadToImgur"
-import { apiService } from "@/lib/api-service"
-import { Card } from "@/components/ui/card"
+import { Loader2 } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { uploadToNuuls } from "@/lib/uploadToImgur";
+import { apiService } from "@/lib/api-service";
+import { Card } from "@/components/ui/card";
 
-import { BlogHeader } from "@/components/blog/BlogHeader"
-import { BlogEditor } from "@/components/blog/BlogEditor"
-import { BlogSettings } from "@/components/blog/BlogSettings"
-import { BlogPublishBar } from "@/components/blog/BlogPublishBar"
-
+import { BlogHeader } from "@/components/blog/BlogHeader";
+import { BlogEditor, BlogEditorRef } from "@/components/blog/BlogEditor";
+import { BlogSettings } from "@/components/blog/BlogSettings";
+import { BlogPublishBar } from "@/components/blog/BlogPublishBar";
 
 export default function NewBlogPage() {
-  const { toast } = useToast()
-  const router = useRouter()
-  const { user, isAuthenticated } = useAuth()
-  const { 
-    categories, 
-    categoriesLoading,  
-    categoriesError     
-  } = useBlog()
+  const { toast } = useToast();
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
+  const { categories, categoriesLoading, categoriesError } = useBlog();
+  const blogEditorRef = useRef<BlogEditorRef>(null);
+
+  // Debug effect to check when ref gets set
+  useEffect(() => {
+    console.log("blogEditorRef changed:", blogEditorRef.current);
+  }, [blogEditorRef.current]);
 
   // States
-  const [title, setTitle] = useState("")
-  const [content, setContent] = useState("")
-  const [selectedTopics, setSelectedTopics] = useState<number[]>([])
-  const [tags, setTags] = useState<string[]>([])
-  const [tagInput, setTagInput] = useState("")
-  const [coverImage, setCoverImage] = useState<string | null>(null)
-  const [coverImageFile, setCoverImageFile] = useState<File | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isPublishing, setIsPublishing] = useState(false)
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [textContent, setTextContent] = useState("");
+  const [selectedTopics, setSelectedTopics] = useState<number[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+  const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   // Auth check
   useEffect(() => {
     const checkAuth = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      setIsLoading(false)
-    }
-    checkAuth()
-  }, [isAuthenticated])
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setIsLoading(false);
+    };
+    checkAuth();
+  }, [isAuthenticated]);
 
   // Handlers (giữ nguyên logic cũ)
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags([...tags, tagInput.trim()])
-      setTagInput("")
+      setTags([...tags, tagInput.trim()]);
+      setTagInput("");
     }
-  }
+  };
 
   const handleRemoveTag = (tag: string) => {
-    setTags(tags.filter((t) => t !== tag))
-  }
+    setTags(tags.filter((t) => t !== tag));
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      e.preventDefault()
-      handleAddTag()
+      e.preventDefault();
+      handleAddTag();
     }
-  }
+  };
 
   const handleTopicToggle = (topicId: number) => {
-    setSelectedTopics((prev) => prev.includes(topicId)
-      ? prev.filter((id) => id !== topicId)
-      : [...prev, topicId])
-  }
+    setSelectedTopics((prev) =>
+      prev.includes(topicId)
+        ? prev.filter((id) => id !== topicId)
+        : [...prev, topicId]
+    );
+  };
 
-  const handleCoverImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files || files.length === 0) return
+  const handleCoverImageChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    const file = files[0]
-    setCoverImageFile(file)
+    const file = files[0];
+    setCoverImageFile(file);
     try {
-      const urlImage = await uploadToNuuls(file)
-      setCoverImage(urlImage)
+      const urlImage = await uploadToNuuls(file);
+      setCoverImage(urlImage);
       toast({
         title: "Upload thành công",
         description: "Ảnh bìa đã được tải lên",
-      })
+      });
     } catch (error) {
       toast({
         title: "Lỗi upload",
         description: "Không thể tải ảnh lên. Vui lòng thử lại.",
         variant: "destructive",
-      })
-      setCoverImageFile(null)
-      setCoverImage(null)
+      });
+      setCoverImageFile(null);
+      setCoverImage(null);
     }
-  }
+  };
 
   const handleRemoveCoverImage = () => {
-    setCoverImage(null)
-    setCoverImageFile(null)
-  }
+    setCoverImage(null);
+    setCoverImageFile(null);
+  };
 
   const handlePublish = async () => {
     if (!title.trim()) {
@@ -111,8 +117,8 @@ export default function NewBlogPage() {
         title: "Thiếu tiêu đề",
         description: "Vui lòng nhập tiêu đề cho bài viết",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     if (!content.trim()) {
@@ -120,8 +126,8 @@ export default function NewBlogPage() {
         title: "Thiếu nội dung",
         description: "Vui lòng nhập nội dung cho bài viết",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     if (selectedTopics.length === 0) {
@@ -129,30 +135,37 @@ export default function NewBlogPage() {
         title: "Thiếu chủ đề",
         description: "Vui lòng chọn ít nhất một chủ đề cho bài viết",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    setIsPublishing(true)
+    setIsPublishing(true);
     try {
-      const response = await apiService.postBlog(title, content, selectedTopics, tags, coverImage)
+      const response = await apiService.postBlog(
+        title,
+        content,
+        textContent,
+        selectedTopics,
+        tags,
+        coverImage
+      );
       if (response.code === 200) {
         toast({
           title: "🎉 Đăng bài thành công",
           description: "Bài viết của bạn đã được đăng tải",
-        })
-        router.push("/blogs")
+        });
+        router.push("/blogs");
       }
     } catch (error) {
       toast({
         title: "Lỗi đăng bài",
         description: "Có lỗi xảy ra, vui lòng thử lại",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsPublishing(false)
+      setIsPublishing(false);
     }
-  }
+  };
 
   // Loading state
   if (isLoading || categoriesLoading) {
@@ -165,12 +178,14 @@ export default function NewBlogPage() {
             </div>
             <div>
               <h3 className="font-semibold">Đang tải...</h3>
-              <p className="text-sm text-muted-foreground">Vui lòng đợi trong giây lát</p>
+              <p className="text-sm text-muted-foreground">
+                Vui lòng đợi trong giây lát
+              </p>
             </div>
           </div>
         </Card>
       </div>
-    )
+    );
   }
 
   // Auth required
@@ -194,7 +209,7 @@ export default function NewBlogPage() {
           </div>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -226,9 +241,12 @@ export default function NewBlogPage() {
               <div className="p-6">
                 <TabsContent value="editor" className="mt-0">
                   <BlogEditor
+                    ref={blogEditorRef}
                     title={title}
                     setTitle={setTitle}
                     content={content}
+                    textContent={textContent}
+                    setTextContent={setTextContent}
                     setContent={setContent}
                     coverImage={coverImage}
                     handleCoverImageChange={handleCoverImageChange}
@@ -257,8 +275,8 @@ export default function NewBlogPage() {
           {/* Publish bar với gradient */}
           <div className="sticky bottom-0 z-10">
             <Card className="border-0 shadow-xl backdrop-blur-md bg-background/95 p-4">
-              <BlogPublishBar 
-                handlePublish={handlePublish} 
+              <BlogPublishBar
+                handlePublish={handlePublish}
                 isPublishing={isPublishing}
                 hasTitle={!!title.trim()}
                 hasContent={!!content.trim()}
@@ -270,5 +288,5 @@ export default function NewBlogPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

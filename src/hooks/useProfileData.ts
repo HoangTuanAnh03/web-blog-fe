@@ -2,7 +2,12 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { apiService } from "@/lib/api-service";
-import { ApiResponse, Gender, UserResponse, UserUpdateRequest } from "@/types/api";
+import {
+  ApiResponse,
+  Gender,
+  UserResponse,
+  UserUpdateRequest,
+} from "@/types/api";
 
 interface PostSummaryResponse {
   id: string;
@@ -50,10 +55,8 @@ export function useProfileData(userId: string) {
   const [isFollowing, setIsFollowing] = useState(false);
   const [totalBlogs, setTotalBlogs] = useState(0);
 
-  // const isCurrentUser = isAuthenticated && user?.id === userId ;  
-const isCurrentUser = isAuthenticated && user && userId && (
-  user.id === userId   
-);
+  // const isCurrentUser = isAuthenticated && user?.id === userId ;
+  const isCurrentUser = isAuthenticated && user && userId && user.id === userId;
 
   const getAuthHeaders = () => {
     const token = JSON.parse(
@@ -68,11 +71,11 @@ const isCurrentUser = isAuthenticated && user && userId && (
   // 1. Fetch user profile info
   const fetchMyProfile = async () => {
     const myInfoResponse = await apiService.getMyInf();
-    
+
     if (myInfoResponse.code === 200 && myInfoResponse.data) {
       const userProfile: ExtendedUserProfile = {
         id: myInfoResponse.data.id,
-        email: "", 
+        email: "",
         name: myInfoResponse.data.name,
         gender: myInfoResponse.data.gender,
         dob: myInfoResponse.data.dob,
@@ -88,7 +91,7 @@ const isCurrentUser = isAuthenticated && user && userId && (
 
   const fetchOtherUser = async (targetUserId: string) => {
     const userResponse = await apiService.getUserById(targetUserId);
-    
+
     if (userResponse.code === 200 && userResponse.data) {
       setProfile(userResponse.data);
     } else {
@@ -103,14 +106,12 @@ const isCurrentUser = isAuthenticated && user && userId && (
       try {
         setIsLoadingProfile(true);
         setError(null);
-        
+
         if (userId === "my-info") {
           await fetchMyProfile();
-        }
-        else if (isCurrentUser) {
+        } else if (isCurrentUser) {
           await fetchMyProfile();
-        }
-        else {
+        } else {
           await fetchOtherUser(userId);
         }
       } catch (error) {
@@ -122,8 +123,6 @@ const isCurrentUser = isAuthenticated && user && userId && (
 
     fetchUserInfo();
   }, [userId, isCurrentUser]);
-
-
 
   // 2. Fetch user blogs
   useEffect(() => {
@@ -178,18 +177,17 @@ const isCurrentUser = isAuthenticated && user && userId && (
   useEffect(() => {
     async function fetchFollowers() {
       if (activeTab !== "followers" || followers.length > 0) return;
-try {
-  setIsLoadingFollowers(true);
-  const res = await apiService.getUserFollowStats(userId);
-  if (res.code === 200 && res.data) {
-    setFollowers(res.data.follower || []);
-  }
-} catch (error) {
-  console.error("Error fetching followers:", error);
-} finally {
-  setIsLoadingFollowers(false);
-}
-
+      try {
+        setIsLoadingFollowers(true);
+        const res = await apiService.getUserFollowStats(userId);
+        if (res.code === 200 && res.data) {
+          setFollowers(res.data.follower || []);
+        }
+      } catch (error) {
+        console.error("Error fetching followers:", error);
+      } finally {
+        setIsLoadingFollowers(false);
+      }
     }
 
     fetchFollowers();
@@ -199,18 +197,17 @@ try {
   useEffect(() => {
     async function fetchFollowing() {
       if (activeTab !== "following" || following.length > 0) return;
-try {
-  setIsLoadingFollowing(true);
-  const res = await apiService.getUserFollowStats(userId);
-  if (res.code === 200 && res.data) {
-    setFollowing(res.data.following || []);
-  }
-} catch (error) {
-  console.error("Error fetching following:", error);
-} finally {
-  setIsLoadingFollowing(false);
-}
-
+      try {
+        setIsLoadingFollowing(true);
+        const res = await apiService.getUserFollowStats(userId);
+        if (res.code === 200 && res.data) {
+          setFollowing(res.data.following || []);
+        }
+      } catch (error) {
+        console.error("Error fetching following:", error);
+      } finally {
+        setIsLoadingFollowing(false);
+      }
     }
 
     fetchFollowing();
@@ -219,22 +216,22 @@ try {
   // 6. Check follow status (if not current user)
   useEffect(() => {
     async function fetchFollowStatus() {
-if (!isAuthenticated || isCurrentUser) return;
-try {
-  const res = await apiService.checkFollowStatus(userId, "");
-  if (res.code === 200) {
-    setIsFollowing(Boolean(res.data));
-  }
-} catch (error) {
-  console.error("Error fetching follow status:", error);
-}
+      if (!isAuthenticated || isCurrentUser) return;
+      try {
+        const res = await apiService.checkFollowStatus(userId, "");
+        if (res.code === 200) {
+          setIsFollowing(Boolean(res.data));
+        }
+      } catch (error) {
+        console.error("Error fetching follow status:", error);
+      }
     }
 
     fetchFollowStatus();
   }, [userId, isAuthenticated, isCurrentUser]);
 
   //7. Toggle follow/unfollow
-const toggleFollow = async () => {
+  const toggleFollow = async () => {
     if (!isAuthenticated) {
       router.push("/login");
       return;

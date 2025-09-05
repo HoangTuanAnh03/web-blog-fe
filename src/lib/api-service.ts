@@ -109,6 +109,7 @@ class ApiService {
   async postBlog(
     title: string,
     content: string,
+    textContent: string,
     cids: number[],
     hashtags: string[],
     cover: string | null
@@ -119,6 +120,7 @@ class ApiService {
         title: title,
         content: content,
         cids: cids,
+        textContent: textContent,
         hashtags: hashtags,
         cover: cover,
       }),

@@ -97,23 +97,23 @@ export default function EditProfilePage() {
 
     try {
       const avatarUrl = await uploadToNuuls(file);
-      
+
       setUser((prev) => (prev ? { ...prev, avatar: avatarUrl } : null));
-      
+
       toast({
         title: "Upload thành công",
         description: "Ảnh đại diện đã được tải lên",
       });
-      
-      console.log('🔥 Avatar uploaded successfully:', avatarUrl);
+
+      console.log("🔥 Avatar uploaded successfully:", avatarUrl);
     } catch (error) {
-      console.error('Avatar upload error:', error);
+      console.error("Avatar upload error:", error);
       toast({
         title: "Lỗi upload",
         description: "Không thể tải ảnh lên. Vui lòng thử lại.",
         variant: "destructive",
       });
-      
+
       setAvatarFile(null);
       setAvatarPreview(null);
     }
@@ -142,10 +142,12 @@ export default function EditProfilePage() {
         name: user.name,
         dob: user.dob,
         gender: user.gender,
-        ...(user.avatar && !user.avatar.startsWith('blob:') ? { avatar: user.avatar } : {})
+        ...(user.avatar && !user.avatar.startsWith("blob:")
+          ? { avatar: user.avatar }
+          : {}),
       };
 
-      console.log('🔥 Submitting with payload:', payload);
+      console.log("🔥 Submitting with payload:", payload);
 
       const res = await fetch(
         `https://api.sportbooking.site/users/${user.id}`,
@@ -165,7 +167,7 @@ export default function EditProfilePage() {
         localStorage.setItem("authState", JSON.stringify(authState));
 
         toast({ title: "Thành công", description: "Đã cập nhật thông tin" });
-        
+
         setTimeout(() => {
           window.location.href = "/users/my-info";
         }, 1500);
@@ -235,15 +237,15 @@ export default function EditProfilePage() {
                   />
                 </label>
               </div>
-              
+
               {avatarFile && (
                 <div className="text-center space-y-2">
                   <p className="text-sm text-green-600 dark:text-green-400">
                     ✅ Ảnh đã được tải lên thành công
                   </p>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    type="button"
+                    variant="outline"
                     size="sm"
                     onClick={handleRemoveAvatar}
                   >

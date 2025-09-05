@@ -65,32 +65,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (storedAuthState) {
           const parsedAuthState = JSON.parse(storedAuthState) as AuthState;
           setAuthState(parsedAuthState);
-apiService.reloadAccessToken();
+          apiService.reloadAccessToken();
 
-if (parsedAuthState?.accessToken && parsedAuthState?.user && !parsedAuthState.user.avatar) {
-  try {
-    const my = await apiService.getMyInf();
-    if (my?.code === 200 && my.data) {
-      setAuthState((prev) => ({
-        ...prev,
-        user: {
-          ...prev.user!,
-          avatar: my.data.avatar || null,
-        },
-      }));
-      localStorage.setItem("authState", JSON.stringify({
-        ...parsedAuthState,
-        user: {
-          ...parsedAuthState.user!,
-          avatar: my.data.avatar || null,
-        }
-      }));
-    }
-  } catch (e) {
-    
-  }
-}
-
+          if (
+            parsedAuthState?.accessToken &&
+            parsedAuthState?.user &&
+            !parsedAuthState.user.avatar
+          ) {
+            try {
+              const my = await apiService.getMyInf();
+              if (my?.code === 200 && my.data) {
+                setAuthState((prev) => ({
+                  ...prev,
+                  user: {
+                    ...prev.user!,
+                    avatar: my.data.avatar || null,
+                  },
+                }));
+                localStorage.setItem(
+                  "authState",
+                  JSON.stringify({
+                    ...parsedAuthState,
+                    user: {
+                      ...parsedAuthState.user!,
+                      avatar: my.data.avatar || null,
+                    },
+                  })
+                );
+              }
+            } catch (e) {}
+          }
         }
       } catch (error) {
         console.error("Authentication error:", error);
