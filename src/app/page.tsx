@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { ArrowRight, BookOpen, Flame } from "lucide-react"
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ArrowRight, BookOpen, Flame, MessageCircle } from "lucide-react";
 
 export default function HomePage() {
   return (
@@ -11,15 +11,24 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="container mx-auto flex flex-col items-center justify-center text-center py-20 space-y-8">
         <div className="flex justify-center gap-3">
-          <Badge variant="default" className="text-base px-4 py-1">BLOG PLATFORM</Badge>
+          <Badge variant="default" className="text-base px-4 py-1">
+            BLOG PLATFORM
+          </Badge>
         </div>
         <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent leading-tight max-w-3xl mx-auto drop-shadow">
           Chào mừng bạn đến với <span className="text-primary">Blog</span>
         </h1>
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-          Nơi cộng đồng chia sẻ, học hỏi & lan tỏa tri thức  Kênh blog dành cho lập trình viên và những người yêu công nghệ hiện đại.<br/>
-          Khám phá các bài viết chất lượng, thủ thuật code, trends mới & nhiều hơn nữa.
+          Nơi cộng đồng chia sẻ, học hỏi & lan tỏa tri thức Kênh blog dành cho
+          lập trình viên và những người yêu công nghệ hiện đại.
+          <br />
+          Khám phá các bài viết chất lượng, thủ thuật code, trends mới & nhiều
+          hơn nữa.
         </p>
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4">
+          <MessageCircle className="h-4 w-4" />
+          <span>Thử chatbot AI ở góc màn hình để tìm kiếm bài viết!</span>
+        </div>
         <div className="flex flex-col md:flex-row gap-4 justify-center pt-3">
           <Button asChild size="lg" className="gap-2 font-semibold shadow-lg">
             <Link href="/blogs">
@@ -28,7 +37,12 @@ export default function HomePage() {
               <ArrowRight className="h-5 w-5" />
             </Link>
           </Button>
-          <Button asChild variant="outline" size="lg" className="gap-2 font-semibold">
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="gap-2 font-semibold"
+          >
             <Link href="/blogs/new">
               <Flame className="h-5 w-5" />
               Viết blog của bạn
@@ -44,25 +58,30 @@ export default function HomePage() {
             <Flame className="h-10 w-10 text-primary" />
             <h3 className="font-bold text-lg">Nơi khởi nguồn tri thức</h3>
             <p className="text-muted-foreground text-sm">
-              Tổng hợp các bài viết chia sẻ kinh nghiệm thực chiến, giải thuật, framework, product - tất cả chỉ trong một nền tảng mở.
+              Tổng hợp các bài viết chia sẻ kinh nghiệm thực chiến, giải thuật,
+              framework, product - tất cả chỉ trong một nền tảng mở.
             </p>
           </div>
           <div className="rounded-xl bg-white shadow-sm p-6 flex flex-col items-center text-center space-y-2">
             <BookOpen className="h-10 w-10 text-secondary" />
             <h3 className="font-bold text-lg">Cho cộng đồng, bởi cộng đồng</h3>
             <p className="text-muted-foreground text-sm">
-              Mọi thành viên đều có thể đăng bài, bình luận, thảo luận & tìm cảm hứng code cùng những người bạn chung đam mê.
+              Mọi thành viên đều có thể đăng bài, bình luận, thảo luận & tìm cảm
+              hứng code cùng những người bạn chung đam mê.
             </p>
           </div>
           <div className="rounded-xl bg-white shadow-sm p-6 flex flex-col items-center text-center space-y-2">
             <ArrowRight className="h-10 w-10 text-blue-500" />
-            <h3 className="font-bold text-lg">Tối ưu cho học tập & phát triển</h3>
+            <h3 className="font-bold text-lg">
+              Tối ưu cho học tập & phát triển
+            </h3>
             <p className="text-muted-foreground text-sm">
-              Dữ liệu rõ ràng, tìm kiếm mạnh mẽ, trải nghiệm mượt mà trên mọi thiết bị, an toàn bảo mật & sẵn sàng cho SEO.
+              Dữ liệu rõ ràng, tìm kiếm mạnh mẽ, trải nghiệm mượt mà trên mọi
+              thiết bị, an toàn bảo mật & sẵn sàng cho SEO.
             </p>
           </div>
         </div>
       </section>
     </div>
-  )
+  );
 }

@@ -5,22 +5,22 @@ export interface ApiResponse<T> {
   data: T;
 }
 export interface UserResponse {
-  id: string
-  name: string
-  avatar?: string
-  email: string
-  dob: string
+  id: string;
+  name: string;
+  avatar?: string;
+  email: string;
+  dob: string;
   gender: Gender;
 }
 
 export interface PostSummaryAIResponse {
-  summary: string
+  summary: string;
 }
 
 export interface CategoryResponse {
-  id: number
-  cname: string
-  cdesc: string
+  id: number;
+  cname: string;
+  cdesc: string;
 }
 export interface Notification {
   id: string;
@@ -31,20 +31,20 @@ export interface Notification {
   isRead: boolean;
 }
 export interface PostSummaryResponse {
-  id: string
-  title: string
-  cover: string
-  excerpt: string
-  userResponse: UserResponse | null
-  viewsCount: number
-  commentsCount: number
-  hasSensitiveContent: boolean
-  category: string[]
-  createdAt: string // ISO string format của LocalDateTime
-  coverImage?: string // Thêm trường coverImage
+  id: string;
+  title: string;
+  cover: string;
+  excerpt: string;
+  userResponse: UserResponse | null;
+  viewsCount: number;
+  commentsCount: number;
+  hasSensitiveContent: boolean;
+  category: string[];
+  createdAt: string; // ISO string format của LocalDateTime
+  coverImage?: string; // Thêm trường coverImage
 }
 
-export interface ToggleFollowResponse{
+export interface ToggleFollowResponse {
   followerId: string;
   followingId: string;
   createdAt: string;
@@ -52,67 +52,66 @@ export interface ToggleFollowResponse{
 }
 
 export interface Comment {
-  id: string | number
-  content: string
-  userResponse: UserResponse | null
-  createdAt?: string
-  leftValue?: number
-  rightValue?: number
-  replies?: Comment[]
-  parentId?: string // Thêm trường parentId để hỗ trợ nested set model
-  lft?: number // left value trong nested set model
-  rgt?: number
+  id: string | number;
+  content: string;
+  userResponse: UserResponse | null;
+  createdAt?: string;
+  leftValue?: number;
+  rightValue?: number;
+  replies?: Comment[];
+  parentId?: string; // Thêm trường parentId để hỗ trợ nested set model
+  lft?: number; // left value trong nested set model
+  rgt?: number;
 }
 
 export interface PostResponse {
-  id: string
-  userResponse: UserResponse | null
-  title: string
-  content: string
-  cover: string
-  viewsCount: number
-  commentsCount: number
-  summaryAi: string | null
-  hasSensitiveContent: boolean
-  rawContent: string
-  comments: Comment[]
-  category: string[]
-  hashtags: string[]
-  relatedPosts: PostSummaryResponse[]
-  createdAt: string
-  coverImage?: string
+  id: string;
+  userResponse: UserResponse | null;
+  title: string;
+  content: string;
+  cover: string;
+  viewsCount: number;
+  commentsCount: number;
+  summaryAi: string | null;
+  hasSensitiveContent: boolean;
+  rawContent: string;
+  comments: Comment[];
+  category: string[];
+  hashtags: string[];
+  relatedPosts: PostSummaryResponse[];
+  createdAt: string;
+  coverImage?: string;
 }
 
 // Interface cho phân trang
 export interface PageResponse<T> {
-  content: T[]
+  content: T[];
   pageable: {
-    pageNumber: number
-    pageSize: number
+    pageNumber: number;
+    pageSize: number;
     sort: {
-      empty: boolean
-      sorted: boolean
-      unsorted: boolean
-    }
-    offset: number
-    unpaged: boolean
-    paged: boolean
-  }
-  last: boolean
-  totalElements: number
-  totalPages: number
-  size: number
-  number: number
+      empty: boolean;
+      sorted: boolean;
+      unsorted: boolean;
+    };
+    offset: number;
+    unpaged: boolean;
+    paged: boolean;
+  };
+  last: boolean;
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
   sort: {
-    empty: boolean
-    sorted: boolean
-    unsorted: boolean
-  }
-  first: boolean
-  numberOfElements: number
-  empty: boolean
+    empty: boolean;
+    sorted: boolean;
+    unsorted: boolean;
+  };
+  first: boolean;
+  numberOfElements: number;
+  empty: boolean;
 }
-
 
 export interface FollowStatsResponse {
   follower: UserResponse[];
@@ -120,12 +119,39 @@ export interface FollowStatsResponse {
 }
 export type Gender = "MALE" | "FEMALE" | "OTHER";
 
-
-export interface UserUpdateRequest{
+export interface UserUpdateRequest {
   email: string;
   id: string;
   name: string;
   dob: string;
   avatar?: string;
   gender: Gender;
+}
+
+// Chatbot interfaces
+export interface ChatMessage {
+  id: string;
+  content: string;
+  isUser: boolean;
+  timestamp: string;
+}
+
+export interface ChatbotRequest {
+  query: string;
+  conversation_id?: number;
+  user_id?: string;
+}
+
+export interface ChatbotSource {
+  pid: string;
+  title: string;
+  score: number;
+  highlights: string[];
+  url: string;
+}
+
+export interface ChatbotResponse {
+  answer: string;
+  sources?: ChatbotSource[];
+  conversation_id?: number;
 }

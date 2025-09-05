@@ -5,6 +5,7 @@ import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/toaster";
+import { ChatbotPopup } from "@/components/chatbot-popup";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,6 +27,7 @@ export default function RootLayout({
             <SiteHeader />
             <main className="flex-1">{children}</main>
             <Toaster />
+            <ChatbotPopup />
             <footer className="bg-muted py-4 text-center text-xs text-muted-foreground border-t">
               © 2025 Blog Platform. All rights reserved.
             </footer>
@@ -35,5 +37,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-import "./globals.css";

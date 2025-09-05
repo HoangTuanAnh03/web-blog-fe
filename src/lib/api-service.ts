@@ -10,6 +10,9 @@ import {
   ToggleFollowResponse,
   UserResponse,
   UserUpdateRequest,
+  ChatbotRequest,
+  ChatbotResponse,
+  Comment,
 } from "@/types/api";
 
 class ApiService {
@@ -239,6 +242,15 @@ class ApiService {
       `/blog/comment/delete/${commentId}`,
       { method: "DELETE" }
     );
+  }
+
+  // ===== Chatbot =====
+  /** Gửi tin nhắn tới chatbot */
+  async sendChatMessage(payload: ChatbotRequest) {
+    return this.fetchApi<ApiResponse<ChatbotResponse>>(`/blog/post/chat`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
   }
 }
 
