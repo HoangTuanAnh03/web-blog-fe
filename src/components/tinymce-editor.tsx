@@ -110,7 +110,7 @@ const TinyMCEEditor = forwardRef<TinyMCEEditorRef, TinyMCEEditorProps>(
 
         <div className={!isEditorLoaded ? "hidden" : ""}>
           <Editor
-            apiKey="c7g3bowjbi9v4vokvur1e5uskxie7ky57ykmuzyouehu6hfh"
+            apiKey="rvpeg3by0cajknhv2anwsejeoac49m7kpp2u6dg3b5q0977l"
             onInit={(_: any, editor: any) => {
               console.log("TinyMCE editor initialized:", editor);
               editorRef.current = editor;
