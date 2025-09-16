@@ -5,14 +5,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { CalendarDays, PenLine } from "lucide-react"
 import { cn } from "@/lib/utils"
+import type { UserResponse } from "@/types/api" 
 
-type UserLike = {
-  id?: string
-  name?: string | null
-  avatar?: string | null
-}
+type BlogAuthor = Pick<UserResponse, "id" | "name" | "avatar">
 
-export function BlogHeader({ user }: { user: UserLike }) {
+export function BlogHeader({ user }: { user: BlogAuthor | null }) {
   const currentDate = new Date().toLocaleDateString("vi-VN", {
     weekday: "long",
     year: "numeric",
@@ -20,24 +17,25 @@ export function BlogHeader({ user }: { user: UserLike }) {
     day: "numeric",
   })
 
-  // Tránh lỗi khi avatar null/undefined/"null"/"string"
+  const displayName = (user?.name?.trim() || "Tác giả ẩn danh")
+  const initials = displayName.slice(0, 2).toUpperCase()
+
   const safeAvatar =
-    typeof user?.avatar === "string" && user.avatar && user.avatar !== "null" && user.avatar !== "string"
+    typeof user?.avatar === "string" &&
+    user.avatar &&
+    user.avatar !== "null" &&
+    user.avatar !== "string"
       ? user.avatar
       : "/placeholder.svg"
-
-  const displayName = user?.name?.trim() || "Tác giả ẩn danh"
-  const initials = displayName.slice(0, 2).toUpperCase()
 
   return (
     <div
       className={cn(
-        // Khối nền hero nhẹ, có chiều sâu, hợp với theme
         "rounded-2xl border border-border bg-gradient-to-br from-primary/5 via-accent/40 to-transparent",
         "px-5 py-7 md:px-8 md:py-10 shadow-card"
       )}
     >
-      {/* Label nhỏ + ngày hiện tại */}
+      {/* Label + ngày */}
       <div className="mb-3 flex flex-wrap items-center justify-center gap-2 text-xs md:text-sm text-muted-foreground">
         <span className="inline-flex items-center gap-1 rounded-full border border-border bg-card/80 px-3 py-1 shadow-sm">
           <PenLine className="h-3.5 w-3.5" />
@@ -53,14 +51,10 @@ export function BlogHeader({ user }: { user: UserLike }) {
       <div className="text-center">
         <h1
           className={cn(
-            // Dáng “medium-like”: chữ to, đậm, tracking-tight
             "text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight",
-            // Gradient chữ tinh tế, không quá gắt
             "bg-clip-text text-transparent bg-gradient-to-r from-foreground via-foreground/80 to-foreground/60",
-            // Gạch chân mảnh theo theme khi hover
             "inline-block relative",
-            "after:absolute after:bottom-[-6px] after:left-1/2 after:-translate-x-1/2",
-            "after:h-[2px] after:w-16 after:rounded-full after:bg-primary/40"
+            "after:absolute after:bottom-[-6px] after:left-1/2 after:-translate-x-1/2 after:h-[2px] after:w-16 after:rounded-full after:bg-primary/40"
           )}
         >
           Tạo Bài Viết Mới
@@ -72,7 +66,7 @@ export function BlogHeader({ user }: { user: UserLike }) {
         <div className="mt-6 flex items-center justify-center">
           <div className="inline-flex items-center gap-3 rounded-full bg-card/80 px-3 py-2 ring-1 ring-border shadow-sm">
             <Link
-              href={user?.id ? `/users/${user.id}` : "#"}
+              href={user.id ? `/users/${user.id}` : "#"}
               className="flex items-center gap-3"
               aria-label={`Trang tác giả ${displayName}`}
             >
@@ -88,7 +82,7 @@ export function BlogHeader({ user }: { user: UserLike }) {
                   <Badge variant="secondary" className="h-6 text-[12px] px-2">
                     Tác giả
                   </Badge>
-                  {user?.id && (
+                  {user.id && (
                     <span className="text-xs text-muted-foreground hidden sm:inline">
                       <span className="opacity-70">@</span>
                       {displayName.toLowerCase().replace(/\s+/g, "")}

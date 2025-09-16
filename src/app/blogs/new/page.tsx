@@ -19,6 +19,7 @@ import { BlogHeader } from "@/components/blog/BlogHeader";
 import { BlogEditor, BlogEditorRef } from "@/components/blog/BlogEditor";
 import { BlogSettings } from "@/components/blog/BlogSettings";
 import { BlogPublishBar } from "@/components/blog/BlogPublishBar";
+import { UserResponse } from "@/types/api";
 
 export default function NewBlogPage() {
   const { toast } = useToast();
@@ -26,11 +27,12 @@ export default function NewBlogPage() {
   const { user, isAuthenticated } = useAuth();
   const { categories, categoriesLoading, categoriesError } = useBlog();
   const blogEditorRef = useRef<BlogEditorRef>(null);
-
-  // Debug effect to check when ref gets set
+  const blogAuthor = user
+    ? ({ id: user.id, name: user.name, avatar: user.avatar } as Pick<UserResponse, "id" | "name" | "avatar">)
+    : null
   useEffect(() => {
     console.log("blogEditorRef changed:", blogEditorRef.current);
-  }, [blogEditorRef.current]);
+  });
 
   // States
   const [title, setTitle] = useState("");
@@ -220,7 +222,7 @@ export default function NewBlogPage() {
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 rounded-2xl -z-10" />
             <Card className="p-6 border-0 shadow-sm backdrop-blur-sm">
-              <BlogHeader user={user} />
+              <BlogHeader user={blogAuthor} />
             </Card>
           </div>
 
