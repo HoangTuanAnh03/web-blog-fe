@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-import Link from "next/link"
-// import { PenTool } from 'lucide-react'
+
 
 interface AuthPageWrapperProps {
   title: string
@@ -17,6 +16,7 @@ export function AuthPageWrapper({ title, description, children, footer }: AuthPa
 
       <main className="container mx-auto px-4 py-20">
         <div className="max-w-md mx-auto">
+          <BookIcon className="mb-6 h-16 w-16 text-primary mx-auto" />
           <div className="text-center mb-12">
             <div className="mb-8">
               <h1 className="text-4xl font-bold text-foreground mb-4 tracking-tight">{title}</h1>

@@ -7,7 +7,7 @@ import { useProfileData } from "@/hooks/useProfileData";
 import { ProfileSidebar } from "@/components/profile/profile-sidebar";
 import { ProfileTabs } from "@/components/profile/profile-tabs";
 
-export default function EditProfilePage() {
+export default function ProfilePage() {
   const params = useParams();
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();

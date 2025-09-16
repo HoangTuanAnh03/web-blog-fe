@@ -91,7 +91,7 @@ export function useBlogDetail(blogId: string, options: UseBlogDetailOptions = {}
       setError(null)
 
       const response = await apiService.getBlogDetail(blogId)
-
+      console.log('✅ Fetch blog detail response:', response)
       if (response?.code === 200 && response.data) {
         setBlog(response.data)
         onSuccess?.(response.data)

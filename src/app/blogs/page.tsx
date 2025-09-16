@@ -1,33 +1,46 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { BlogCard } from "@/components/blog/blog-card";
 import { SearchBar, type SearchParams } from "@/components/blog/search-bar";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/pagination";
 import { useBlog } from "@/hooks/useBlog";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
+import { apiService } from "@/lib/api-service";
+import type {
+  PostResponse,
+  PostSummaryResponse,
+  CategoryResponse,
+} from "@/types/api";
+import { FeaturedCarousel } from "@/components/blog/FeaturedCarousel";
+import { CategoryQuickPick } from "@/components/blog/CategoryQuickPick";
+
+function BlogCardSkeleton() {
+  return (
+    <div className="flex flex-col p-4 bg-card border border-border rounded-2xl shadow-card animate-pulse">
+      <div className="aspect-[16/9] w-full rounded-xl bg-muted mb-5" />
+      <div className="h-5 rounded bg-muted max-w-[70%] mb-3" />
+      <div className="h-4 rounded bg-muted max-w-[85%] mb-8" />
+      <div className="h-4 rounded bg-muted max-w-[50%]" />
+    </div>
+  );
+}
 
 export default function BlogsPage() {
+  // ====== FILTER STATE ======
   const [searchParams, setSearchParams] = useState<SearchParams>({
     query: "",
     topics: [],
   });
+
   const [currentPage, setCurrentPage] = useState(0);
-  const pageSize = 5;
+  const pageSize = 12;
+
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
 
-  const { isAuthenticated, user } = useAuth();
-
-  // Sử dụng useBlog hook
+  // ====== HOOK BACKEND ======
   const {
     categories,
     categoriesLoading,
@@ -38,6 +51,24 @@ export default function BlogsPage() {
     fetchBlogs,
   } = useBlog();
 
+  // ====== STATE AGGREGATE & DETAIL ======
+  const [allSummaries, setAllSummaries] = useState<PostSummaryResponse[]>([]);
+  const [detailById, setDetailById] = useState<Record<string, PostResponse>>(
+    {}
+  );
+  const [detailsLoading, setDetailsLoading] = useState(false);
+
+  // ====== FEATURED ======
+  const [featured, setFeatured] = useState<PostResponse[] | null>(null);
+  const [featuredLoading, setFeaturedLoading] = useState(false);
+
+  useEffect(() => {
+    setAllSummaries([]);
+    setDetailById({});
+    setCurrentPage(0);
+  }, [searchParams]);
+
+  // ====== AUTH & FETCH PAGE ======
   useEffect(() => {
     if (isAuthenticated) {
       fetchBlogs({
@@ -49,211 +80,311 @@ export default function BlogsPage() {
     } else {
       router.push("/login");
     }
-  }, [currentPage, searchParams, fetchBlogs, isAuthenticated, router]);
+  }, [
+    currentPage,
+    searchParams,
+    fetchBlogs,
+    isAuthenticated,
+    router,
+    pageSize,
+  ]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      setCurrentPage(0);
-    }
+    if (isAuthenticated) setCurrentPage(0);
   }, [isAuthenticated]);
 
   useEffect(() => {
     setCurrentPage(0);
   }, [searchParams]);
 
-  const handleSearch = (params: SearchParams) => {
-    setSearchParams(params);
-  };
+  useEffect(() => {
+    if (!blogs) return;
+    const content = blogs.content ?? [];
+    setAllSummaries((prev) => {
+      if (currentPage === 0) return content;
+      const existed = new Set(prev.map((x) => x.id));
+      const toAppend = content.filter((x) => x.id && !existed.has(x.id));
+      return prev.concat(toAppend);
+    });
+  }, [blogs, currentPage]);
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const getPageNumbers = () => {
-    if (!blogs) return [];
-
-    const totalPages = blogs.totalPages;
-    const current = blogs.number;
-    const maxPagesToShow = 5;
-
-    if (totalPages <= maxPagesToShow) {
-      return Array.from({ length: totalPages }, (_, i) => i);
+  useEffect(() => {
+    let cancelled = false;
+    async function loadMissingDetails() {
+      if (!allSummaries.length) {
+        setDetailById({});
+        return;
+      }
+      const ids = allSummaries.map((b) => b.id).filter(Boolean) as string[];
+      const missing = ids.filter((id) => !detailById[id]);
+      if (!missing.length) return;
+      setDetailsLoading(true);
+      try {
+        const results = await Promise.all(
+          missing.map(async (id) => {
+            try {
+              const res = await apiService.getBlogDetail(id);
+              if (res.code === 200 && res.data) return res.data as PostResponse;
+            } catch {}
+            return null;
+          })
+        );
+        if (cancelled) return;
+        setDetailById((prev) => {
+          const map = { ...prev };
+          for (const item of results) {
+            if (item) map[item.id] = item;
+          }
+          return map;
+        });
+      } finally {
+        if (!cancelled) setDetailsLoading(false);
+      }
     }
+    loadMissingDetails();
+    return () => {
+      cancelled = true;
+    };
+  }, [allSummaries, detailById]);
 
-    let startPage = Math.max(0, current - Math.floor(maxPagesToShow / 2));
-    let endPage = startPage + maxPagesToShow - 1;
+  // ====== FEATURED ======
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        setFeaturedLoading(true);
+        const apiAny = apiService as any;
+        if (typeof apiAny.getTopViewedPosts === "function") {
+          const res = await apiAny.getTopViewedPosts(5);
+          if (!active) return;
+          if (Array.isArray(res)) {
+            setFeatured(res.slice(0, 5));
+            return;
+          }
+          if (res?.code === 200 && Array.isArray(res?.data)) {
+            setFeatured(res.data.slice(0, 5));
+            return;
+          }
+        }
+        const list = Object.values(detailById);
+        const withViews = list
+          .map((x) => ({
+            item: x,
+            views: (x as any).viewCount ?? (x as any).views ?? 0,
+          }))
+          .sort((a, b) => b.views - a.views)
+          .slice(0, 5)
+          .map((x) => x.item);
+        setFeatured(withViews);
+      } finally {
+        if (active) setFeaturedLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [detailById]);
 
-    if (endPage >= totalPages) {
-      endPage = totalPages - 1;
-      startPage = Math.max(0, endPage - maxPagesToShow + 1);
-    }
-
-    return Array.from(
-      { length: endPage - startPage + 1 },
-      (_, i) => startPage + i
-    );
+  // ====== QUICK PICK HANDLERS ======
+  const handleToggleTopicId = (idStr: string) => {
+    setSearchParams((p) => {
+      const exists = p.topics?.includes(idStr);
+      const topics = exists
+        ? (p.topics || []).filter((t) => t !== idStr)
+        : [...(p.topics || []), idStr];
+      return { ...p, topics };
+    });
   };
+  const handleClearTopics = () =>
+    setSearchParams((p) => ({ ...p, topics: [] }));
 
+  // ====== UI STATES ======
   const combinedError = categoriesError || blogsError;
-  const isInitialLoading = categoriesLoading || (blogsLoading && !blogs);
+  const isInitialLoading =
+    categoriesLoading || (blogsLoading && allSummaries.length === 0);
+  const hasMore = blogs ? !blogs.last : false; // dựa theo lần gọi gần nhất
+  const gridSummaries = allSummaries.length
+    ? allSummaries
+    : blogs?.content ?? [];
 
   return (
-    <div className="container max-w-7xl mx-auto py-8 px-4 md:px-6">
-      <div className="space-y-8">
-        {/* Header Section */}
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-            Khám Phá Bài Viết
+    <div className="min-h-screen bg-background">
+      {/* FEATURED */}
+      <section
+        aria-labelledby="featured-heading"
+        className=" bg-gradient-to-b from-accent/40 via-accent/15 to-transparent"
+      >
+        <h2 id="featured-heading" className="sr-only">
+          Bài viết nổi bật
+        </h2>
+        <div className="mx-auto max-w-[1400px] px-4 md:px-6 lg:px-8 py-8 md:py-12">
+          <div className="mb-6 flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">Gợi ý hôm nay</p>
+          </div>
+          <div className="relative overflow-hidden">
+            <FeaturedCarousel
+              items={featured ?? []}
+              loading={featuredLoading}
+            />
+          </div>
+        </div>
+      </section>
+
+      <div className="mx-auto max-w-[1400px] px-4 md:px-6 lg:px-8 py-10">
+        {/* Header */}
+        <header className="mb-8 space-y-3 text-center">
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
+            Khám phá bài viết
           </h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Tìm kiếm và khám phá những bài viết thú vị từ cộng đồng
+          <p className="text-sm md:text-base text-muted-foreground mx-auto max-w-[70ch]">
+            Tìm kiếm & khám phá những bài viết chất lượng từ cộng đồng.
           </p>
-        </div>
+        </header>
 
-        {/* Search Bar */}
-        <div className="bg-card rounded-lg p-6 shadow-sm border">
-          {categoriesLoading ? (
-            <div className="h-20 flex items-center justify-center">
-              <div className="flex items-center gap-2">
+        {/* FILTER: QuickPick + SearchBar */}
+        <section
+          aria-labelledby="filter-heading"
+          className="mb-10 rounded-2xl border border-border bg-card shadow-card"
+        >
+          <h2 id="filter-heading" className="sr-only">
+            Bộ lọc
+          </h2>
+
+          {/* QuickPick*/}
+          <div className="border-b p-4 md:p-5">
+            <CategoryQuickPick
+              categories={(categories as CategoryResponse[]) || []}
+              selectedTopicIds={searchParams.topics || []}
+              onToggleTopicId={handleToggleTopicId}
+              onClear={handleClearTopics}
+              loading={categoriesLoading}
+              maxVisible={10}
+            />
+          </div>
+
+          {/* SearchBar */}
+          <div className="p-4 md:p-5">
+            {categoriesLoading ? (
+              <div className="flex h-20 items-center justify-center gap-2 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                <span className="text-sm text-muted-foreground">
-                  Đang tải bộ lọc...
-                </span>
+                Đang tải bộ lọc…
               </div>
-            </div>
-          ) : categoriesError ? (
-            <div className="text-center py-4">
-              <p className="text-destructive text-sm">
-                Lỗi tải chủ đề: {categoriesError}
+            ) : categoriesError ? (
+              <p className="text-center font-medium text-destructive">
+                {categoriesError}
               </p>
-            </div>
-          ) : (
-            <SearchBar onSearch={handleSearch} topics={categories} />
-          )}
-        </div>
+            ) : (
+              <SearchBar
+                onSearch={setSearchParams}
+                topics={categories as CategoryResponse[]}
+              />
+            )}
+          </div>
+        </section>
 
-        {/* Content Section */}
-        <div>
+        {/* Content */}
+        <section
+          aria-live="polite"
+          aria-busy={blogsLoading || detailsLoading}
+          className="min-h-[400px]"
+        >
           {combinedError ? (
-            <div className="text-center py-12">
-              <div className="text-destructive mb-2">⚠️ Có lỗi xảy ra</div>
+            <div className="py-12 text-center">
+              <p className="mb-2 font-semibold text-destructive">
+                ⚠️ Có lỗi xảy ra
+              </p>
               <p className="text-muted-foreground">{combinedError}</p>
               <button
-                onClick={() => {
+                onClick={() =>
                   fetchBlogs({
                     page: currentPage,
                     size: pageSize,
                     query: searchParams.query,
                     topics: searchParams.topics,
-                  });
-                }}
-                className="mt-4 text-primary hover:underline"
+                  })
+                }
+                className="mt-5 text-primary hover:underline"
               >
                 Thử lại
               </button>
             </div>
           ) : isInitialLoading ? (
-            <div className="flex justify-center py-12">
-              <div className="text-center space-y-4">
-                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-                <p className="text-sm text-muted-foreground">
-                  Đang tải bài viết...
-                </p>
-              </div>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {Array.from({ length: pageSize }).map((_, i) => (
+                <BlogCardSkeleton key={i} />
+              ))}
             </div>
-          ) : blogs && blogs.content.length > 0 ? (
+          ) : gridSummaries.length > 0 ? (
             <>
-              {/* Loading overlay khi đang fetch thêm */}
-              {blogsLoading && (
-                <div className="relative">
-                  <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-10 flex items-center justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <div className="mb-6 flex items-center justify-between text-sm text-muted-foreground">
+                <p>
+                  Đang hiển thị {gridSummaries.length.toLocaleString()}
+                  {blogs?.totalElements ? (
+                    <> / {blogs.totalElements.toLocaleString()}</>
+                  ) : null}{" "}
+                  bài viết
+                </p>
+                {detailsLoading && (
+                  <div className="inline-flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span>Đang tải chi tiết…</span>
                   </div>
-                </div>
-              )}
-
-              {/* Results count */}
-              <div className="flex items-center justify-between mb-6">
-                <p className="text-sm text-muted-foreground">
-                  Tìm thấy {blogs.totalElements.toLocaleString()} bài viết
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Trang {currentPage + 1} / {blogs.totalPages}
-                </p>
-              </div>
-
-              {/* Blog grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {blogs.content.map(
-                  (blog) =>
-                    blog.id && (
-                      <BlogCard key={blog.id} post={blog} hideAuthor={false} />
-                    )
                 )}
               </div>
 
-              {/* Pagination */}
-              {blogs.totalPages > 1 && (
-                <Pagination className="mt-8">
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        onClick={() =>
-                          handlePageChange(Math.max(0, currentPage - 1))
-                        }
-                        className={
-                          currentPage === 0
-                            ? "pointer-events-none opacity-50"
-                            : "cursor-pointer"
-                        }
-                      />
-                    </PaginationItem>
+              <div className="relative">
+                {(blogsLoading || detailsLoading) && (
+                  <div className="pointer-events-none absolute inset-0 z-10 rounded-xl bg-background/40 backdrop-blur-[1px]" />
+                )}
 
-                    {getPageNumbers().map((pageNumber) => (
-                      <PaginationItem key={pageNumber}>
-                        <PaginationLink
-                          onClick={() => handlePageChange(pageNumber)}
-                          isActive={pageNumber === currentPage}
-                          className="cursor-pointer"
-                        >
-                          {pageNumber + 1}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {gridSummaries.map((sum) => {
+                    const detail = sum.id ? detailById[sum.id] : undefined;
+                    return detail ? (
+                      <BlogCard key={sum.id} blog={detail} hideAuthor={false} />
+                    ) : (
+                      <BlogCardSkeleton key={sum.id} />
+                    );
+                  })}
+                </div>
+              </div>
 
-                    <PaginationItem>
-                      <PaginationNext
-                        onClick={() =>
-                          handlePageChange(
-                            Math.min(blogs.totalPages - 1, currentPage + 1)
-                          )
-                        }
-                        className={
-                          currentPage === blogs.totalPages - 1
-                            ? "pointer-events-none opacity-50"
-                            : "cursor-pointer"
-                        }
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
+              {/* NÚT XEM THÊM */}
+              {hasMore && (
+                <div className="mt-10 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                    disabled={blogsLoading}
+                    aria-busy={blogsLoading}
+                    className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-6 py-3 text-sm font-semibold shadow-card transition-all hover:shadow-md hover:scale-[1.01] disabled:opacity-60"
+                  >
+                    {blogsLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" /> Đang tải…
+                      </>
+                    ) : (
+                      <>Xem thêm</>
+                    )}
+                  </button>
+                </div>
               )}
             </>
           ) : (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="py-24 text-center">
+              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-muted text-4xl">
                 📝
               </div>
-              <h3 className="text-xl font-semibold mb-2">
-                Không tìm thấy bài viết nào
+              <h3 className="mb-2 text-xl font-semibold">
+                Chưa có bài viết phù hợp
               </h3>
-              <p className="text-muted-foreground mb-4">
-                Hãy thử điều chỉnh từ khóa tìm kiếm hoặc bộ lọc để tìm thấy nội
-                dung bạn đang tìm kiếm.
+              <p className="mx-auto mb-2 max-w-md text-muted-foreground">
+                Hãy điều chỉnh từ khóa hoặc chọn thêm chủ đề để khám phá nội
+                dung khác.
               </p>
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

@@ -207,10 +207,9 @@ class ApiService {
   }
 
   // ===== Comments (NEW) =====
-  /** Tạo bình luận hoặc trả lời (nếu có parentId) */
   async createComment(payload: {
     content: string;
-    pid: string; // post id
+    pid: string;
     parentId?: string;
   }) {
     return this.fetchApi<ApiResponse<Comment>>(`/blog/comment`, {
@@ -224,7 +223,7 @@ class ApiService {
     commentId: string,
     payload: {
       content: string;
-      pid: string; // post id
+      pid: string; 
     }
   ) {
     return this.fetchApi<ApiResponse<Comment>>(

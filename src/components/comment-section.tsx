@@ -31,6 +31,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { useBlogDetail } from "@/hooks/useBlogDetail";
 
 interface CommentSectionProps {
   blogId: string;
@@ -73,12 +74,13 @@ export function CommentSection({ blogId, comments: initialComments }: CommentSec
     confirmDelete,
   } = useComments(blogId, initialComments);
 
+  const {blog} = useBlogDetail(blogId)
   return (
     <>
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="text-slate-900">
-            Bình Luận ({comments.length})
+            Bình Luận ({blog?.commentsCount || comments.length})
           </CardTitle>
         </CardHeader>
 

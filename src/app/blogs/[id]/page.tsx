@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
   AlertTriangle,
@@ -62,7 +62,6 @@ const handleAISummary = async () => {
   setAiSummary(null)
   try {
     const res = await apiService.getBlogSummary(blog.id)
-    // res có dạng ApiResponse<{ summary: string }>
     if (res?.code === 200 && res.data?.summary) {
       setAiSummary(res.data.summary)
     } else {
@@ -131,6 +130,28 @@ const handleAISummary = async () => {
         duration: 3000,
       })
     }
+  }
+
+  useEffect(() => {
+    setShowRawContent(false)
+  }, [blog?.id])
+
+  useEffect(() => {
+    if (!blog?.hasSensitiveContent) setShowRawContent(false)
+  }, [blog?.hasSensitiveContent])
+  const handleToggleRawContent = () => {
+    if (!blog?.hasSensitiveContent) return
+    const raw = blog?.rawContent?.trim()
+    if (!raw) {
+      toast({
+        title: "Không có nội dung gốc",
+        description: "Bài viết này không cung cấp rawContent để hiển thị.",
+        variant: "destructive",
+        duration: 3000,
+      })
+      return
+    }
+    setShowRawContent(v => !v)
   }
 
   if (isLoading) {
@@ -232,10 +253,11 @@ const handleAISummary = async () => {
             <div className="bg-white rounded-lg shadow-sm border p-4">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex gap-3">
-                  <Button 
-                    variant="outline" 
-                    onClick={handleAISummary}     // ← dùng service có sẵn
+                  <Button
+                    variant="outline"
+                    onClick={handleAISummary}
                     className="gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                    disabled={loadingSummary}
                   >
                     <Sparkles className="h-4 w-4" />
                     <span className="hidden sm:inline">Tóm tắt AI</span>
@@ -243,15 +265,21 @@ const handleAISummary = async () => {
                   </Button>
 
                   {isAuthenticated && blog.hasSensitiveContent && (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border rounded-lg text-sm">
-                      <FileText className="h-4 w-4 text-gray-600" />
-                      <span className="font-medium text-gray-700">Nội dung gốc</span>
-                    </div>
+                    <Button
+                      type="button"
+                      onClick={handleToggleRawContent}
+                      aria-pressed={showRawContent}
+                      variant={showRawContent ? "default" : "outline"}
+                      className={`gap-2 ${showRawContent ? "" : "bg-gray-50"}`}
+                      disabled={!blog.rawContent}
+                    >
+                      <FileText className="h-4 w-4" />
+                      {showRawContent ? "Đang xem nội dung gốc" : "Nội dung gốc"}
+                    </Button>
                   )}
                 </div>
               </div>
 
-              {/* NEW: Hộp hiển thị tóm tắt */}
               {showAISummary && (
                 <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <h3 className="text-blue-800 font-semibold mb-2">Tóm tắt AI</h3>

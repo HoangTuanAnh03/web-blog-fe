@@ -42,12 +42,10 @@ export function useComments(blogId: string, initialComments: Comment[]) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
-  // Keep ApiService headers in sync with token changes
   useEffect(() => {
     apiService.reloadAccessToken();
   }, [accessToken]);
 
-  // Init comments (giữ logic cũ)
   useEffect(() => {
     if (initialComments?.length > 0 && initialComments[0].replies !== undefined) {
       setComments(initialComments);
