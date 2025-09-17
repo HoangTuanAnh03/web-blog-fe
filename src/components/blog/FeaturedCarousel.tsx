@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, ArrowRight } from "lucide-react";
@@ -13,8 +13,7 @@ type Props = {
   className?: string;
   maxItems?: number;
   ctaText?: string;
-  subtitle?: string; // mô tả ngắn dưới title (optional)
-
+  subtitle?: string; 
 };
 
 export function FeaturedCarousel({
@@ -25,12 +24,12 @@ export function FeaturedCarousel({
   maxItems = 5,
   ctaText = "Đọc ngay",
   subtitle,
-
 }: Props) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [idx, setIdx] = useState(0);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(false);
+  const [paused, setPaused] = useState(false);
 
   const derived = useMemo(
     () => (items ?? []).slice(0, maxItems),
@@ -54,11 +53,42 @@ export function FeaturedCarousel({
     setCanNext(scrollLeft + clientWidth < scrollWidth - 2);
   };
 
+  // Lấy danh sách slide (dùng aria-roledescription="slide" sẵn có)
+  const getSlides = () =>
+    Array.from(
+      trackRef.current?.querySelectorAll<HTMLElement>(
+        '[aria-roledescription="slide"]'
+      ) ?? []
+    );
+
+const scrollToIndex = useCallback((nextIndex: number) => {
+  const el = trackRef.current;
+  const slides = getSlides();
+  if (!el || slides.length === 0) return;
+
+  const i = Math.max(0, Math.min(nextIndex, slides.length - 1));
+  const target = slides[i];
+
+  const targetLeft = target.offsetLeft - (el.clientWidth - target.offsetWidth) / 2;
+
+  el.scrollTo({
+    left: Math.max(0, targetLeft),
+    behavior: "smooth",
+  });
+
+  setIdx(i);
+  setTimeout(updateNavState, 250);
+}, []);
+
   const scrollByAmount = (dir: "prev" | "next") => {
-    const el = trackRef.current;
-    if (!el) return;
-    const w = el.clientWidth;
-    el.scrollBy({ left: dir === "next" ? w : -w, behavior: "smooth" });
+    const slides = getSlides();
+    if (slides.length === 0) return;
+
+    const next =
+      dir === "next"
+        ? Math.min(idx + 1, slides.length - 1)
+        : Math.max(idx - 1, 0);
+    scrollToIndex(next);
   };
 
   useEffect(() => {
@@ -69,20 +99,36 @@ export function FeaturedCarousel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageCount]);
 
+  // Auto slide
+  useEffect(() => {
+  if (paused || loading || derived.length === 0) return;
+  const timer = setInterval(() => {
+    const slides = getSlides();
+    if (slides.length === 0) return;
+
+    if (idx >= slides.length - 1) {
+      scrollToIndex(0);
+    } else {
+      scrollToIndex(idx + 1);
+    }
+  }, 3000);
+
+  return () => clearInterval(timer);
+}, [paused, loading, derived.length, idx, scrollToIndex]);
+
   return (
     <section
       className={`relative ${className}`}
       role="region"
       aria-roledescription="carousel"
       aria-label={title}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
     >
       <div className="mb-4 flex items-center justify-between">
-        {/* Header Pro */}
-        <div className="mb-4">
+        <div className="mb-2">
           <div className="flex items-start justify-between gap-3">
-            {/* Left: Icon + Title */}
             <div className="flex items-start gap-3">
-              {/* Icon pill */}
               <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <svg
                   viewBox="0 0 24 24"
@@ -98,25 +144,16 @@ export function FeaturedCarousel({
                   />
                 </svg>
               </div>
-
-              {/* Title area */}
               <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">
-                    {title}
-                  </h2>
-
-                </div>
-
-                {/* Subtitle (optional) */}
+                <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+                  {title}
+                </h2>
                 {subtitle && (
                   <p className="mt-1 text-sm text-muted-foreground">
                     {subtitle}
                   </p>
                 )}
-
-                {/* Accent underline */}
-                <div className="mt-3 h-1 w-16 rounded-full bg-primary/80" />
+                <div className="mt-3 h-1 w-14 rounded-full bg-primary/80" />
               </div>
             </div>
           </div>
@@ -146,12 +183,30 @@ export function FeaturedCarousel({
       {/* Track */}
       <div
         ref={trackRef}
-        className="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-smooth"
+        className="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         onScroll={(e) => {
           const el = e.currentTarget;
-          const w = el.clientWidth || 1;
-          const i = Math.round(el.scrollLeft / w);
-          setIdx(i);
+          const slides = getSlides();
+          if (slides.length === 0) return;
+
+          // Tìm slide có tâm gần nhất so với tâm viewport của track
+          const center = el.scrollLeft + el.clientWidth / 2;
+          let closest = 0;
+          let minDist = Number.POSITIVE_INFINITY;
+
+          for (let i = 0; i < slides.length; i++) {
+            const s = slides[i];
+            const left = s.offsetLeft;
+            const right = left + s.offsetWidth;
+            const mid = (left + right) / 2;
+            const dist = Math.abs(mid - center);
+            if (dist < minDist) {
+              minDist = dist;
+              closest = i;
+            }
+          }
+
+          setIdx(closest);
           updateNavState();
         }}
         tabIndex={0}
@@ -202,7 +257,6 @@ export function FeaturedCarousel({
                 ) : (
                   <div className="h-full w-full bg-gradient-to-br from-accent to-muted" />
                 )}
-                {/* Overlay gradient tăng độ tương phản chữ */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-transparent" />
               </div>
 
@@ -258,7 +312,6 @@ export function FeaturedCarousel({
         </div>
       )}
 
-      {/* Empty state (khi không loading & không có item) */}
       {!loading && derived.length === 0 && (
         <div className="rounded-xl border border-dashed border-border p-8 text-center text-muted-foreground mt-4">
           Chưa có bài viết mới.

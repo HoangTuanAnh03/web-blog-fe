@@ -58,17 +58,14 @@ export function LoginForm() {
     try {
       const success = await login(email, password);
       if (success) {
-        toast({
-          title: "Đăng nhập thành công",
-          description: "Chào mừng bạn quay trở lại!",
-          duration: 1500,
-        });
-        // await apiService.reloadAccessToken?.();
-        router.refresh();
-        localStorage.removeItem("authState");
-      sessionStorage.clear();
-      window.location.href = "/login";
-      } else {
+  toast({
+    title: "Đăng nhập thành công",
+    description: "Chào mừng bạn quay trở lại!",
+    duration: 1500,
+  });
+  router.replace("/blogs");
+  return;
+} else {
         toast({
           title: "Đăng nhập thất bại",
           description: "Email hoặc mật khẩu không chính xác",

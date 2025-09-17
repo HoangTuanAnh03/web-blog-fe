@@ -126,6 +126,7 @@ export interface UserUpdateRequest {
   dob: string;
   avatar?: string;
   gender: Gender;
+  noPassword?: boolean;
 }
 
 // Chatbot interfaces

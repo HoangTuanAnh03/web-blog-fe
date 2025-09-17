@@ -73,13 +73,11 @@ export function useBlogDetail(blogId: string, options: UseBlogDetailOptions = {}
     return isUserOwner
   }, [blog?.userResponse?.id, currentUser?.userId])
 
-  // Helper function for safe image URLs
   const getSafeImageUrl = useCallback((url: string | null | undefined, fallback = "/placeholder.svg"): string => {
     if (!url || url === "string" || url === "null") return fallback
     return url.startsWith("http") || url.startsWith("/") ? url : fallback
   }, [])
 
-  // Fetch blog detail function
   const fetchBlogDetail = useCallback(async (): Promise<void> => {
     if (!blogId?.trim()) {
       setError('ID bài viết không hợp lệ')
@@ -91,7 +89,6 @@ export function useBlogDetail(blogId: string, options: UseBlogDetailOptions = {}
       setError(null)
 
       const response = await apiService.getBlogDetail(blogId)
-      console.log('✅ Fetch blog detail response:', response)
       if (response?.code === 200 && response.data) {
         setBlog(response.data)
         onSuccess?.(response.data)

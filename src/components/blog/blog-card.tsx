@@ -98,11 +98,17 @@ export function BlogCard({
   if (!blog) return null;
 
   const coverImage = getSafeImageUrl(blog.cover);
-  // Use excerpt if available (PostSummaryResponse), otherwise create from content (PostResponse)
-  const excerpt = 'excerpt' in blog && blog.excerpt ? blog.excerpt : createExcerptFromHtml((blog as PostResponse).content);
+  const excerpt =
+    "excerpt" in blog && blog.excerpt
+      ? blog.excerpt
+      : createExcerptFromHtml((blog as PostResponse).content);
   const readingTime = Math.max(
     1,
-    Math.ceil(('content' in blog ? (blog as PostResponse).content?.length || 0 : blog.excerpt?.length || 0) / 1000)
+    Math.ceil(
+      ("content" in blog
+        ? (blog as PostResponse).content?.length || 0
+        : blog.excerpt?.length || 0) / 1000
+    )
   );
   const views = (blog as any).viewsCount ?? (blog as any).viewCount ?? 0;
   const comments =
@@ -118,19 +124,18 @@ export function BlogCard({
 
   return (
     <article className="group">
-      <Card className="h-full flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-lg focus-within:ring-2 focus-within:ring-primary/40">
-        {/* Cover (đã cố định tỷ lệ) */}
+      <Card className="h-full flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg focus-within:ring-2 focus-within:ring-primary/40">
         <div className="relative">
           <Link
             href={`/blogs/${blog.id}`}
             aria-label={`Xem bài: ${blog.title}`}
           >
-            <div className="relative aspect-[16/10] bg-muted">
+            <div className="relative aspect-[16/10] bg-muted overflow-hidden rounded-b-none">
               <Image
                 src={coverImage}
                 alt={blog.title}
                 fill
-                className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                className="object-cover will-change-transform transition-transform duration-500 group-hover:scale-[1.02]"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               />
               <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-gradient-to-t from-black/20 via-black/5 to-transparent" />
@@ -192,67 +197,109 @@ export function BlogCard({
         </div>
 
         {/* Body */}
-        <div className="flex flex-1 flex-col p-5">
-          {/* Hashtag row — giữ CHỖ CỐ ĐỊNH: cao ~28px, 1 hàng, nếu không có vẫn chừa chỗ */}
+        <div className="flex flex-1 flex-col px-5 pt-5 pb-3 sm:px-6 sm:pt-6 sm:pb-4 rounded-xl">
           <div className={hasTags ? "mb-3 min-h-7" : "mb-2 min-h-7"}>
             {hasTags && (
-              <div className="flex items-center gap-1.5 overflow-hidden">
-                <div className="flex flex-nowrap gap-1.5 overflow-x-hidden">
-                  {hashtags.slice(0, 6).map((tag) => (
-                    <span
-                      key={tag}
-                      title={`#${tag}`}
-                      className="inline-flex items-center rounded-full border border-border/70 bg-accent/60 px-2.5 py-1 text-xs md:text-[13px] leading-5 text-foreground hover:bg-accent hover:border-primary/30 transition-colors"
-                      aria-label={`hashtag ${tag}`}
-                    >
-                      <span className="mr-1 text-primary">#</span>
-                      <span className="truncate max-w-[10rem]">{tag}</span>
-                    </span>
-                  ))}
-                </div>
+              <div
+                className="flex items-center gap-1.5 overflow-x-auto scroll-smooth pl-1 pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                aria-label="Danh sách hashtag"
+              >
+                {hashtags.slice(0, 6).map((tag) => (
+                  <span
+                    key={tag}
+                    title={`#${tag}`}
+                    className="inline-flex items-center rounded-full border border-border/60 bg-accent/70 px-2 py-0.5 text-xs leading-5 text-foreground/95 hover:bg-accent/90 hover:border-primary/30 transition-colors"
+                    aria-label={`hashtag ${tag}`}
+                  >
+                    <span className="mr-1 text-primary">#</span>
+                    <span className="truncate max-w-[10rem]">{tag}</span>
+                  </span>
+                ))}
               </div>
             )}
           </div>
+
           {/* Title*/}
           <Link href={`/blogs/${blog.id}`} className="block">
-            <div className="mb-2 min-h-[3.2rem]">
-              <h2 className="line-clamp-2 text-xl font-semibold leading-tight tracking-tight transition-colors group-hover:text-primary">
+            <div className="mb-2 min-h-[3.0rem]">
+              <h2
+                className="line-clamp-2 text-[1.15rem] font-semibold leading-snug tracking-normal text-foreground transition-colors group-hover:text-primary/90
+                 bg-gradient-to-r from-primary/0 via-primary/20 to-primary/0
+                 bg-[length:0%_2px] bg-no-repeat bg-left-bottom
+                 group-hover:bg-[length:100%_2px] transition-[background-size] duration-300"
+              >
                 {blog.title}
               </h2>
             </div>
           </Link>
 
           {/* Excerpt*/}
-          <div className="min-h-[8.2rem]">
-            <p className="mb-4 flex-1 break-words leading-relaxed text-muted-foreground line-clamp-5 overflow-hidden">
+          <div className="min-h-[7.6rem]">
+            <p className="mb-4 flex-1 break-words leading-normal text-muted-foreground/90 line-clamp-4 overflow-hidden">
               {excerpt}
             </p>
           </div>
 
-          {/* Meta */}
-          <div className="mb-3 flex items-center justify-between border-t border-border/80 py-2 text-sm text-muted-foreground">
-            <div className="flex items-center gap-4">
-              <span className="inline-flex items-center gap-1">
-                <Eye className="h-4 w-4" aria-hidden="true" />
-                {Number(views).toLocaleString()}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <MessageSquare className="h-4 w-4" aria-hidden="true" />
-                {Number(comments).toLocaleString()}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <BookOpen className="h-4 w-4" aria-hidden="true" />~
-                {readingTime}p đọc
-              </span>
-            </div>
-            <time
-              className="inline-flex items-center gap-1"
-              dateTime={blog.createdAt}
+          <div className="mt-1">
+            <Link
+              href={`/blogs/${blog.id}`}
+              className="inline-flex items-center text-sm font-medium text-primary hover:opacity-90"
+              aria-label={`Đọc bài: ${blog.title}`}
             >
-              <Clock className="h-4 w-4" aria-hidden="true" />
-              {formatDate(blog.createdAt)}
-            </time>
+              Đọc tiếp →
+            </Link>
           </div>
+
+          {/* Meta */}
+<div className="mb-3 border-t border-border/70 pt-3">
+  {/* Row 1: Metrics (center) */}
+  <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+    <span
+      className="inline-flex items-center gap-1.5 tabular-nums"
+      aria-label="Lượt xem"
+      title={`${Number(views).toLocaleString()} lượt xem`}
+    >
+      <Eye className="h-4 w-4 opacity-80" aria-hidden="true" />
+      {Number(views).toLocaleString()}
+    </span>
+
+    <span className="hidden sm:inline-block h-1 w-1 rounded-full bg-muted-foreground/40" aria-hidden />
+
+    <span
+      className="inline-flex items-center gap-1.5 tabular-nums"
+      aria-label="Bình luận"
+      title={`${Number(comments).toLocaleString()} bình luận`}
+    >
+      <MessageSquare className="h-4 w-4 opacity-80" aria-hidden="true" />
+      {Number(comments).toLocaleString()}
+    </span>
+
+    <span className="hidden sm:inline-block h-1 w-1 rounded-full bg-muted-foreground/40" aria-hidden />
+
+    <span
+      className="inline-flex items-center gap-1.5"
+      aria-label="Thời gian đọc"
+      title={`~${readingTime} phút đọc`}
+    >
+      <BookOpen className="h-4 w-4 opacity-80" aria-hidden="true" />
+      ~{readingTime}p đọc
+    </span>
+  </div>
+
+  {/* Row 2: Date (right) */}
+  <div className="mt-2 flex justify-end">
+    <time
+      className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 px-2.5 py-1 text-xs text-foreground/85 shadow-sm"
+      dateTime={blog.createdAt}
+      title={formatDate(blog.createdAt)}
+    >
+      <Clock className="h-3.5 w-3.5 opacity-80" aria-hidden="true" />
+      {formatDate(blog.createdAt)}
+    </time>
+  </div>
+</div>
+
+
 
           {/* Author */}
           {!hideAuthor && (
@@ -260,7 +307,7 @@ export function BlogCard({
               {blog.userResponse ? (
                 <Link
                   href={`/users/${blog.userResponse.id}`}
-                  className="group/author -m-2 flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-accent"
+                  className="group/author -m-2 flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                   aria-label={`Xem trang tác giả ${blog.userResponse.name}`}
                 >
                   <Avatar className="h-10 w-10 border border-border shadow-sm">
@@ -273,7 +320,7 @@ export function BlogCard({
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium transition-colors group-hover/author:text-primary">
+                    <p className="truncate font-medium text-foreground transition-colors group-hover/author:text-primary/90">
                       {blog.userResponse.name}
                     </p>
                     <p className="text-xs text-muted-foreground">

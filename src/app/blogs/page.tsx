@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { BlogCard } from "@/components/blog/blog-card";
 import { SearchBar, type SearchParams } from "@/components/blog/search-bar";
@@ -50,6 +50,7 @@ export default function BlogsPage() {
     blogsError,
     fetchBlogs,
   } = useBlog();
+  
 
   // ====== STATE AGGREGATE & DETAIL ======
   const [allSummaries, setAllSummaries] = useState<PostSummaryResponse[]>([]);
@@ -61,12 +62,13 @@ export default function BlogsPage() {
   // ====== FEATURED ======
   const [featured, setFeatured] = useState<PostResponse[] | null>(null);
   const [featuredLoading, setFeaturedLoading] = useState(false);
+  const fetchedIdsRef = useRef<Set<string>>(new Set());
 
-  useEffect(() => {
-    setAllSummaries([]);
-    setDetailById({});
-    setCurrentPage(0);
-  }, [searchParams]);
+  // useEffect(() => {
+  //   setAllSummaries([]);
+  //   setDetailById({});
+  //   setCurrentPage(0);
+  // }, [searchParams]);
 
   // ====== AUTH & FETCH PAGE ======
   useEffect(() => {
@@ -108,44 +110,53 @@ export default function BlogsPage() {
     });
   }, [blogs, currentPage]);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function loadMissingDetails() {
-      if (!allSummaries.length) {
-        setDetailById({});
-        return;
-      }
-      const ids = allSummaries.map((b) => b.id).filter(Boolean) as string[];
-      const missing = ids.filter((id) => !detailById[id]);
-      if (!missing.length) return;
-      setDetailsLoading(true);
-      try {
-        const results = await Promise.all(
-          missing.map(async (id) => {
-            try {
-              const res = await apiService.getBlogDetail(id);
-              if (res.code === 200 && res.data) return res.data as PostResponse;
-            } catch {}
-            return null;
-          })
-        );
-        if (cancelled) return;
-        setDetailById((prev) => {
-          const map = { ...prev };
-          for (const item of results) {
-            if (item) map[item.id] = item;
-          }
-          return map;
-        });
-      } finally {
-        if (!cancelled) setDetailsLoading(false);
-      }
+useEffect(() => {
+  let cancelled = false;
+
+  async function loadMissingDetails() {
+    const ids = (allSummaries ?? []).map((b) => b.id).filter(Boolean) as string[];
+    if (!ids.length) {
+      setDetailById({});
+      fetchedIdsRef.current.clear();
+      return;
     }
-    loadMissingDetails();
-    return () => {
-      cancelled = true;
-    };
-  }, [allSummaries, detailById]);
+
+    const missing = ids.filter((id) => !detailById[id] && !fetchedIdsRef.current.has(id));
+    if (!missing.length) return;
+
+    setDetailsLoading(true);
+    try {
+      const results = await Promise.all(
+        missing.map(async (id) => {
+          try {
+            const res = await apiService.getBlogDetail(id);
+            if (res.code === 200 && res.data) return res.data as PostResponse;
+          } catch {}
+          return null;
+        })
+      );
+      if (cancelled) return;
+
+      setDetailById((prev) => {
+        const next = { ...prev };
+        for (const item of results) {
+          if (item) {
+            next[item.id] = item;
+            fetchedIdsRef.current.add(item.id);
+          }
+        }
+        return next;
+      });
+    } finally {
+      if (!cancelled) setDetailsLoading(false);
+    }
+  }
+
+  loadMissingDetails();
+  return () => { cancelled = true; };
+// 🔑 Chỉ phụ thuộc summaries để tránh lặp
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, [allSummaries]);
 
   // ====== FEATURED ======
   useEffect(() => {
@@ -241,7 +252,7 @@ export default function BlogsPage() {
           </p>
         </header>
 
-        {/* FILTER: QuickPick + SearchBar */}
+        {/* FILTER*/}
         <section
           aria-labelledby="filter-heading"
           className="mb-10 rounded-2xl border border-border bg-card shadow-card"

@@ -1,17 +1,21 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
 import { AuthPageWrapper } from "@/components/auth/AuthPageWrapper";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated /*, isLoading */ } = useAuth();
   const router = useRouter();
 
-  if (isAuthenticated) {
-    router.push("/blogs");
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace("/blogs");
+    }
+  }, [isAuthenticated, router]);
+  
+  if (isAuthenticated) return null;
 
   return (
     <AuthPageWrapper

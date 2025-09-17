@@ -6,6 +6,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useCallback,
   type ReactNode,
 } from "react";
 
@@ -58,54 +59,104 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const storedAuthState = localStorage.getItem("authState");
-        if (storedAuthState) {
-          const parsedAuthState = JSON.parse(storedAuthState) as AuthState;
-          setAuthState(parsedAuthState);
-          apiService.reloadAccessToken();
+  // useEffect(() => {
+  //   const checkAuth = async () => {
+  //     try {
+  //       const storedAuthState = localStorage.getItem("authState");
+  //       if (storedAuthState) {
+  //         const parsedAuthState = JSON.parse(storedAuthState) as AuthState;
+  //         setAuthState(parsedAuthState);
+  //         apiService.reloadAccessToken();
 
-          if (
-            parsedAuthState?.accessToken &&
-            parsedAuthState?.user &&
-            !parsedAuthState.user.avatar
-          ) {
-            try {
-              const my = await apiService.getMyInf();
-              if (my?.code === 200 && my.data) {
-                setAuthState((prev) => ({
-                  ...prev,
-                  user: {
-                    ...prev.user!,
-                    avatar: my.data.avatar || null,
-                  },
-                }));
-                localStorage.setItem(
-                  "authState",
-                  JSON.stringify({
-                    ...parsedAuthState,
-                    user: {
-                      ...parsedAuthState.user!,
-                      avatar: my.data.avatar || null,
-                    },
-                  })
-                );
-              }
-            } catch (e) {}
-          }
-        }
-      } catch (error) {
-        console.error("Authentication error:", error);
-        // Xóa dữ liệu không hợp lệ
-        localStorage.removeItem("authState");
-      } finally {
-        setIsLoading(false);
-      }
+  //         if (
+  //           parsedAuthState?.accessToken &&
+  //           parsedAuthState?.user &&
+  //           !parsedAuthState.user.avatar
+  //         ) {
+  //           try {
+  //             const my = await apiService.getMyInf();
+  //             if (my?.code === 200 && my.data) {
+  //               setAuthState((prev) => ({
+  //                 ...prev,
+  //                 user: {
+  //                   ...prev.user!,
+  //                   avatar: my.data.avatar || null,
+  //                 },
+  //               }));
+  //               localStorage.setItem(
+  //                 "authState",
+  //                 JSON.stringify({
+  //                   ...parsedAuthState,
+  //                   user: {
+  //                     ...parsedAuthState.user!,
+  //                     avatar: my.data.avatar || null,
+  //                   },
+  //                 })
+  //               );
+  //             }
+  //           } catch (e) {}
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error("Authentication error:", error);
+  //       // Xóa dữ liệu không hợp lệ
+  //       localStorage.removeItem("authState");
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
+  //   checkAuth();
+  // }, []);
+
+function mergeUser(partial: Partial<User>) {
+  setAuthState(prev => {
+    const next: AuthState = {
+      ...prev,
+      user: { ...(prev.user ?? { id: "", email: "", name: "", avatar: null, role: "", noPassword: false }), ...partial }
     };
-    checkAuth();
-  }, []);
+    localStorage.setItem("authState", JSON.stringify(next));
+    return next;
+  });
+}
+
+const hydrateMe = useCallback(async () => {
+  try {
+    const me = await apiService.getMyInf();
+    if (me?.code === 200 && me.data) {
+      mergeUser({
+        avatar: me.data.avatar ?? null,
+        name: me.data.name ?? undefined,
+        email: me.data.email ?? undefined,
+        id: me.data.id ?? undefined,
+      });
+    }
+  } catch (e) {
+    // ignore
+  }
+}, []);
+
+  useEffect(() => {
+  const checkAuth = async () => {
+    try {
+      const stored = localStorage.getItem("authState");
+      if (stored) {
+        const parsed = JSON.parse(stored) as AuthState;
+        setAuthState(parsed);
+        apiService.reloadAccessToken();
+
+        if (parsed?.accessToken && (!parsed.user || !parsed.user.avatar)) {
+          await hydrateMe();
+        }
+      }
+    } catch (error) {
+      console.error("Authentication error:", error);
+      localStorage.removeItem("authState");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  checkAuth();
+}, [hydrateMe]);
 
   useEffect(() => {
     if (authState.user) {
@@ -113,36 +164,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [authState]);
 
-  // contexts/auth-context.tsx - Sửa hàm login
   const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
 
-      const data = await response.json();
+    if (data.code === 200) {
+      const newAuthState: AuthState = {
+        user: data.data.user ?? null,
+        accessToken: data.data.access_token ?? null,
+        refreshToken: data.data.refresh_token ?? null,
+      };
 
-      if (data.code === 200) {
-        const newAuthState = {
-          user: data.data.user,
-          accessToken: data.data.access_token,
-          refreshToken: data.data.refresh_token,
-        };
-        setAuthState(newAuthState);
-        localStorage.setItem("authState", JSON.stringify(newAuthState));
-        apiService.reloadAccessToken();
-        return true;
+      setAuthState(newAuthState);
+      localStorage.setItem("authState", JSON.stringify(newAuthState));
+
+      apiService.reloadAccessToken();
+
+      if (!newAuthState.user || !newAuthState.user.avatar) {
+        await hydrateMe();
       }
-      return false;
-    } catch (error) {
-      console.error("Login error:", error);
-      return false;
+
+      return true;
     }
-  };
+    return false;
+  } catch (error) {
+    console.error("Login error:", error);
+    return false;
+  }
+};
+
 
   const register = async (userData: RegisterData): Promise<boolean> => {
     try {
