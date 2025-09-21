@@ -55,7 +55,7 @@ export default function NewBlogPage() {
     checkAuth();
   }, [isAuthenticated]);
 
-  // Handlers (giữ nguyên logic cũ)
+  // Handlers
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
       setTags([...tags, tagInput.trim()]);

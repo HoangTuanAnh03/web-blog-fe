@@ -156,3 +156,14 @@ export interface ChatbotResponse {
   sources?: ChatbotSource[];
   conversation_id?: number;
 }
+
+
+export type MediumLink = {
+  id?: string;
+  url: string;
+  userId: string;
+  createdAt?: string;
+  createdBy?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+};

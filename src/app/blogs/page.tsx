@@ -50,7 +50,6 @@ export default function BlogsPage() {
     blogsError,
     fetchBlogs,
   } = useBlog();
-  
 
   // ====== STATE AGGREGATE & DETAIL ======
   const [allSummaries, setAllSummaries] = useState<PostSummaryResponse[]>([]);
@@ -110,53 +109,58 @@ export default function BlogsPage() {
     });
   }, [blogs, currentPage]);
 
-useEffect(() => {
-  let cancelled = false;
+  useEffect(() => {
+    let cancelled = false;
 
-  async function loadMissingDetails() {
-    const ids = (allSummaries ?? []).map((b) => b.id).filter(Boolean) as string[];
-    if (!ids.length) {
-      setDetailById({});
-      fetchedIdsRef.current.clear();
-      return;
-    }
+    async function loadMissingDetails() {
+      const ids = (allSummaries ?? [])
+        .map((b) => b.id)
+        .filter(Boolean) as string[];
+      if (!ids.length) {
+        setDetailById({});
+        fetchedIdsRef.current.clear();
+        return;
+      }
 
-    const missing = ids.filter((id) => !detailById[id] && !fetchedIdsRef.current.has(id));
-    if (!missing.length) return;
-
-    setDetailsLoading(true);
-    try {
-      const results = await Promise.all(
-        missing.map(async (id) => {
-          try {
-            const res = await apiService.getBlogDetail(id);
-            if (res.code === 200 && res.data) return res.data as PostResponse;
-          } catch {}
-          return null;
-        })
+      const missing = ids.filter(
+        (id) => !detailById[id] && !fetchedIdsRef.current.has(id)
       );
-      if (cancelled) return;
+      if (!missing.length) return;
 
-      setDetailById((prev) => {
-        const next = { ...prev };
-        for (const item of results) {
-          if (item) {
-            next[item.id] = item;
-            fetchedIdsRef.current.add(item.id);
+      setDetailsLoading(true);
+      try {
+        const results = await Promise.all(
+          missing.map(async (id) => {
+            try {
+              const res = await apiService.getBlogDetail(id);
+              if (res.code === 200 && res.data) return res.data as PostResponse;
+            } catch {}
+            return null;
+          })
+        );
+        if (cancelled) return;
+
+        setDetailById((prev) => {
+          const next = { ...prev };
+          for (const item of results) {
+            if (item) {
+              next[item.id] = item;
+              fetchedIdsRef.current.add(item.id);
+            }
           }
-        }
-        return next;
-      });
-    } finally {
-      if (!cancelled) setDetailsLoading(false);
+          return next;
+        });
+      } finally {
+        if (!cancelled) setDetailsLoading(false);
+      }
     }
-  }
 
-  loadMissingDetails();
-  return () => { cancelled = true; };
-// 🔑 Chỉ phụ thuộc summaries để tránh lặp
-// eslint-disable-next-line react-hooks/exhaustive-deps
-}, [allSummaries]);
+    loadMissingDetails();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allSummaries]);
 
   // ====== FEATURED ======
   useEffect(() => {
@@ -213,7 +217,7 @@ useEffect(() => {
   const combinedError = categoriesError || blogsError;
   const isInitialLoading =
     categoriesLoading || (blogsLoading && allSummaries.length === 0);
-  const hasMore = blogs ? !blogs.last : false; // dựa theo lần gọi gần nhất
+  const hasMore = blogs ? !blogs.last : false;
   const gridSummaries = allSummaries.length
     ? allSummaries
     : blogs?.content ?? [];
@@ -360,7 +364,6 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* NÚT XEM THÊM */}
               {hasMore && (
                 <div className="mt-10 flex justify-center">
                   <button

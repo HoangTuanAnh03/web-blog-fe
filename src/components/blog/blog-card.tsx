@@ -22,6 +22,14 @@ import { Button } from "@/components/ui/button";
 import type { PostResponse, PostSummaryResponse } from "@/types/api";
 import { formatDate } from "@/lib/utils";
 
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
+import { TooltipArrow } from "@radix-ui/react-tooltip";
+
 interface BlogCardProps {
   blog: PostResponse | PostSummaryResponse;
   hideAuthor?: boolean;
@@ -46,7 +54,6 @@ function createExcerptFromHtml(html?: string, maxLen = 200): string {
 
   if (text.length > maxLen) text = text.slice(0, maxLen).trim();
 
-  // Chuẩn hoá dấu chấm và bỏ chuỗi dấu chấm/ellipsis ở CUỐI
   text = text
     .replace(/\.{3,}/g, "…")
     .replace(/(…|\.)+$/u, "")
@@ -98,10 +105,7 @@ export function BlogCard({
   if (!blog) return null;
 
   const coverImage = getSafeImageUrl(blog.cover);
-  const excerpt =
-    "excerpt" in blog && blog.excerpt
-      ? blog.excerpt
-      : createExcerptFromHtml((blog as PostResponse).content);
+  const excerpt = createExcerptFromHtml((blog as PostResponse).content);
   const readingTime = Math.max(
     1,
     Math.ceil(
@@ -178,9 +182,7 @@ export function BlogCard({
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {/* thêm item nếu cần */}
-                </DropdownMenuContent>
+                <DropdownMenuContent align="end"></DropdownMenuContent>
               </DropdownMenu>
             </div>
           )}
@@ -197,25 +199,71 @@ export function BlogCard({
         </div>
 
         {/* Body */}
-        <div className="flex flex-1 flex-col px-5 pt-5 pb-3 sm:px-6 sm:pt-6 sm:pb-4 rounded-xl">
+        <div className="flex flex-1 flex-col px-5 pt-5 sm:px-6 sm:pt-6 sm:pb-4 rounded-xl">
+          {/* Hashtags */}
           <div className={hasTags ? "mb-3 min-h-7" : "mb-2 min-h-7"}>
             {hasTags && (
-              <div
-                className="flex items-center gap-1.5 overflow-x-auto scroll-smooth pl-1 pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                aria-label="Danh sách hashtag"
-              >
-                {hashtags.slice(0, 6).map((tag) => (
-                  <span
-                    key={tag}
-                    title={`#${tag}`}
-                    className="inline-flex items-center rounded-full border border-border/60 bg-accent/70 px-2 py-0.5 text-xs leading-5 text-foreground/95 hover:bg-accent/90 hover:border-primary/30 transition-colors"
-                    aria-label={`hashtag ${tag}`}
-                  >
-                    <span className="mr-1 text-primary">#</span>
-                    <span className="truncate max-w-[10rem]">{tag}</span>
-                  </span>
-                ))}
-              </div>
+              <TooltipProvider delayDuration={80}>
+                <div
+                  className="flex flex-wrap items-center gap-1.5 overflow-hidden"
+                  aria-label="Danh sách hashtag"
+                  role="list"
+                >
+                  {hashtags.slice(0, 2).map((tag) => (
+                    <span
+                      key={tag}
+                      role="listitem"
+                      title={`#${tag}`}
+                      className="inline-flex items-center rounded-full border border-border/60 bg-accent/70 px-2 py-0.5 text-[12px] leading-5 text-foreground/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:bg-accent/90 hover:border-primary/30"
+                      aria-label={`hashtag ${tag}`}
+                    >
+                      <span className="mr-1 text-primary">#</span>
+                      <span className="truncate max-w-[10rem] whitespace-nowrap">
+                        {tag}
+                      </span>
+                    </span>
+                  ))}
+
+                  {hashtags.length > 2 && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          aria-label={`Còn ${hashtags.length - 2} hashtag khác`}
+                          className="inline-flex items-center rounded-full border border-border/60 bg-card/70 px-2 py-0.5 text-[12px] leading-5 text-muted-foreground hover:bg-accent/70 hover:text-foreground transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        >
+                          <span className="mr-1">…</span>
+                          <span className="text-xs tabular-nums">
+                            +{hashtags.length - 2}
+                          </span>
+                        </button>
+                      </TooltipTrigger>
+
+                      <TooltipContent
+                        side="bottom"
+                        align="center"
+                        className="max-w-xs md:max-w-sm max-h-48 overflow-y-auto rounded-xl border border-border/70 bg-popover/95 backdrop-blur p-3 shadow-lg"
+                      >
+                        <div className="flex flex-wrap gap-1.5">
+                          {hashtags.slice(2).map((tag) => (
+                            <span
+                              key={tag}
+                              className="inline-flex items-center rounded-full border border-border/60 bg-accent/70 px-2 py-0.5 text-[12px] leading-5 text-foreground/95 whitespace-nowrap hover:bg-accent/90 hover:border-primary/30"
+                              title={`#${tag}`}
+                            >
+                              <span className="mr-1 text-primary">#</span>
+                              <span className="truncate max-w-[8rem]">
+                                {tag}
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                        <TooltipArrow className="fill-border/70" />
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              </TooltipProvider>
             )}
           </div>
 
@@ -251,55 +299,75 @@ export function BlogCard({
           </div>
 
           {/* Meta */}
-<div className="mb-3 border-t border-border/70 pt-3">
-  {/* Row 1: Metrics (center) */}
-  <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-    <span
-      className="inline-flex items-center gap-1.5 tabular-nums"
-      aria-label="Lượt xem"
-      title={`${Number(views).toLocaleString()} lượt xem`}
-    >
-      <Eye className="h-4 w-4 opacity-80" aria-hidden="true" />
-      {Number(views).toLocaleString()}
-    </span>
+          <div className="mb-3 border-t border-border/70 pt-3">
+            {/* Row 1: Metrics (center) */}
+            <div className="min-w-0 flex flex-nowrap items-center justify-center gap-2 sm:gap-3 text-[11px] sm:text-sm text-muted-foreground px-5 sm:px-5">
+              <span
+                className="inline-flex items-center gap-1.5 shrink-0 rounded-full border border-border/60 bg-card/70 px-2.5 sm:px-3 py-0.5 sm:py-1 shadow-sm hover:bg-accent/60 hover:border-primary/30 transition-colors"
+                aria-label="Lượt xem"
+                title={`${Number(views).toLocaleString()} lượt xem`}
+              >
+                <Eye
+                  className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary/80"
+                  aria-hidden="true"
+                />
+                <span className="tabular-nums text-foreground/90">
+                  {Number(views).toLocaleString()}
+                </span>
+              </span>
 
-    <span className="hidden sm:inline-block h-1 w-1 rounded-full bg-muted-foreground/40" aria-hidden />
+              <span
+                aria-hidden
+                className="hidden sm:inline-block h-4 w-px bg-gradient-to-b from-transparent via-border/80 to-transparent shrink-0"
+              />
 
-    <span
-      className="inline-flex items-center gap-1.5 tabular-nums"
-      aria-label="Bình luận"
-      title={`${Number(comments).toLocaleString()} bình luận`}
-    >
-      <MessageSquare className="h-4 w-4 opacity-80" aria-hidden="true" />
-      {Number(comments).toLocaleString()}
-    </span>
+              <span
+                className="inline-flex items-center gap-1.5 shrink-0 rounded-full border border-border/60 bg-card/70 px-2.5 sm:px-3 py-0.5 sm:py-1 shadow-sm hover:bg-accent/60 hover:border-primary/30 transition-colors"
+                aria-label="Bình luận"
+                title={`${Number(comments).toLocaleString()} bình luận`}
+              >
+                <MessageSquare
+                  className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary/80"
+                  aria-hidden="true"
+                />
+                <span className="tabular-nums text-foreground/90">
+                  {Number(comments).toLocaleString()}
+                </span>
+              </span>
 
-    <span className="hidden sm:inline-block h-1 w-1 rounded-full bg-muted-foreground/40" aria-hidden />
+              <span
+                aria-hidden
+                className="hidden sm:inline-block h-4 w-px bg-gradient-to-b from-transparent via-border/80 to-transparent shrink-0"
+              />
 
-    <span
-      className="inline-flex items-center gap-1.5"
-      aria-label="Thời gian đọc"
-      title={`~${readingTime} phút đọc`}
-    >
-      <BookOpen className="h-4 w-4 opacity-80" aria-hidden="true" />
-      ~{readingTime}p đọc
-    </span>
-  </div>
+              <span
+                className="inline-flex items-center gap-1.5 shrink-0 rounded-full border border-border/60 bg-card/70 px-2.5 sm:px-3 py-0.5 sm:py-1 shadow-sm hover:bg-accent/60 hover:border-primary/30 transition-colors"
+                aria-label="Thời gian đọc"
+                title={`~${readingTime} phút đọc`}
+              >
+                <BookOpen
+                  className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary/80"
+                  aria-hidden="true"
+                />
+                <span className="text-foreground/90">~{readingTime}p đọc</span>
+              </span>
+            </div>
 
-  {/* Row 2: Date (right) */}
-  <div className="mt-2 flex justify-end">
-    <time
-      className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 px-2.5 py-1 text-xs text-foreground/85 shadow-sm"
-      dateTime={blog.createdAt}
-      title={formatDate(blog.createdAt)}
-    >
-      <Clock className="h-3.5 w-3.5 opacity-80" aria-hidden="true" />
-      {formatDate(blog.createdAt)}
-    </time>
-  </div>
-</div>
-
-
+            {/* Row 2: Date (right) */}
+            <div className="mt-2 flex justify-end">
+              <time
+                className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/80 px-2.5 py-1 text-xs text-foreground/85 shadow-sm hover:border-primary/30 hover:bg-accent/60 transition-colors"
+                dateTime={blog.createdAt}
+                title={formatDate(blog.createdAt)}
+              >
+                <Clock
+                  className="h-3.5 w-3.5 text-primary/80"
+                  aria-hidden="true"
+                />
+                {formatDate(blog.createdAt)}
+              </time>
+            </div>
+          </div>
 
           {/* Author */}
           {!hideAuthor && (

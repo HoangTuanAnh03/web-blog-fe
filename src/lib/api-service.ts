@@ -13,6 +13,7 @@ import {
   ChatbotRequest,
   ChatbotResponse,
   Comment,
+  MediumLink,
 } from "@/types/api";
 
 class ApiService {
@@ -24,13 +25,16 @@ class ApiService {
   }
 
   private loadAccessToken() {
-    if (typeof window === "undefined") {
-      return;
-    }
-    this.accessToken =
-      JSON.parse(<string>window.localStorage.getItem("authState"))
-        ?.accessToken || "";
+  if (typeof window === "undefined") return;
+  try {
+    const raw = window.localStorage.getItem("authState");
+    if (!raw) { this.accessToken = ""; return; }
+    const parsed = JSON.parse(raw);
+    this.accessToken = parsed?.accessToken || "";
+  } catch {
+    this.accessToken = "";
   }
+}
 
   public reloadAccessToken() {
     this.loadAccessToken();
@@ -142,7 +146,6 @@ class ApiService {
       }
     }
 
-    // return this.fetchApi<PageResponse<PostSummaryResponse>>(url);
     return this.fetchApi<ApiResponse<PageResponse<PostSummaryResponse>>>(url);
   }
 
@@ -251,6 +254,51 @@ class ApiService {
       body: JSON.stringify(payload),
     });
   }
+
+// ===========================================
+// ===== Medium Follow (query ?url=...)
+// ===========================================
+async addMediumFollowLink(url: string) {
+  const qs = new URLSearchParams({ url }).toString();
+  return this.fetchApi<ApiResponse<any>>(`/blog/follow/medium?${qs}`, {
+    method: "POST",
+  });
+}
+
+async listMediumFollowLinks() {
+  return this.fetchApi<ApiResponse<any>>(`/blog/follow/medium`, {
+    method: "GET",
+  });
+}
+
+async unfollowMediumLink(url: string) {
+  const qs = new URLSearchParams({ url }).toString();
+  return this.fetchApi<ApiResponse<any>>(`/blog/follow/medium/un?${qs}`, {
+    method: "POST",
+  });
+}
+
+async triggerMediumCrawl(tokenOverride?: string) {
+  this.reloadAccessToken();
+
+  const token = tokenOverride ?? this.accessToken ?? "";
+
+  const masked = token ? `${token.slice(0, 8)}…${token.slice(-6)}` : "(empty)";
+  console.log("[triggerMediumCrawl] accessToken (masked):", masked);
+  if (process.env.NODE_ENV === "development") {
+    console.log("[triggerMediumCrawl] accessToken (raw):", token);
+  }
+
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  console.log("[triggerMediumCrawl] headers to send:", headers);
+
+  return this.fetchApi<ApiResponse<any>>(`/blog/follow/medium/crawl`, {
+    method: "GET",
+    headers,
+  });
+}
+
 }
 
 export const apiService = ApiService.getInstance();
