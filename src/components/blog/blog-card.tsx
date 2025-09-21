@@ -124,7 +124,11 @@ export function BlogCard({
   const topCategories = categories.slice(0, 3);
 
   const hashtags = extractHashtags(blog);
-  const hasTags = hashtags.length > 0;
+
+  const safeTags = (hashtags ?? []).filter(
+    (t) => !!t && !/^(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(t)
+  );
+  const hasTags = safeTags.length > 0;
 
   return (
     <article className="group">
@@ -224,17 +228,17 @@ export function BlogCard({
                     </span>
                   ))}
 
-                  {hashtags.length > 2 && (
+                  {safeTags.length > 2 && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
                           type="button"
-                          aria-label={`Còn ${hashtags.length - 2} hashtag khác`}
+                          aria-label={`Còn ${safeTags.length - 2} hashtag khác`}
                           className="inline-flex items-center rounded-full border border-border/60 bg-card/70 px-2 py-0.5 text-[12px] leading-5 text-muted-foreground hover:bg-accent/70 hover:text-foreground transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                         >
                           <span className="mr-1">…</span>
                           <span className="text-xs tabular-nums">
-                            +{hashtags.length - 2}
+                            +{safeTags.length - 2}
                           </span>
                         </button>
                       </TooltipTrigger>

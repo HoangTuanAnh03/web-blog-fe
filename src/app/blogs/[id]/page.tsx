@@ -43,7 +43,6 @@ export default function BlogPage({ params }: BlogPageProps) {
     deleteBlog, 
     updateBlog 
   } = useBlogDetail(params.id)
-  console.log(blog)
   const [showRawContent, setShowRawContent] = useState(false)
   const [showAISummary, setShowAISummary] = useState(false)
 
