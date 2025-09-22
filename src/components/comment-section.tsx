@@ -1,7 +1,7 @@
 "use client";
 
 import { useComments } from "@/hooks/useComments"; // <— thêm
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -75,12 +75,20 @@ export function CommentSection({ blogId, comments: initialComments }: CommentSec
   } = useComments(blogId, initialComments);
 
   const {blog} = useBlogDetail(blogId)
+  const totalComments = useMemo(() => {
+    const countThread = (arr: Comment[]): number =>
+      arr.reduce((sum, item) => {
+        const child = item.replies?.length ? countThread(item.replies) : 0;
+        return sum + 1 + child; 
+      }, 0);
+    return countThread(comments);
+  }, [comments]);
   return (
     <>
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="text-slate-900">
-            Bình Luận ({blog?.commentsCount || comments.length})
+            Bình Luận ({totalComments})
           </CardTitle>
         </CardHeader>
 

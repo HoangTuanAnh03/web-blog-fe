@@ -15,6 +15,7 @@ const createUserResponse = (u: any): UserResponse => ({
   gender: u?.gender || "",
 });
 
+// fallback nếu comments phẳng (không cần dùng khi API đã trả replies sẵn)
 function nestComments(raw: Comment[]): Comment[] {
   const roots = raw.filter((c) => !c.parentId);
   const replies = raw.filter((c) => c.parentId);
@@ -24,7 +25,7 @@ function nestComments(raw: Comment[]): Comment[] {
   }));
 }
 
-export function useComments(blogId: string, initialComments: Comment[]) {
+export function useComments(blogId: string, initialComments: Comment[] = []) {
   const { user, isAuthenticated, accessToken } = useAuth();
 
   // Core states
@@ -42,22 +43,55 @@ export function useComments(blogId: string, initialComments: Comment[]) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
+  // Luôn sync token mới nhất
   useEffect(() => {
     apiService.reloadAccessToken();
   }, [accessToken]);
 
+  // ✅ KHỞI TẠO: dùng initialComments (nếu có) để hiện ngay
   useEffect(() => {
-    if (initialComments?.length > 0 && initialComments[0].replies !== undefined) {
-      setComments(initialComments);
+    if (initialComments?.length > 0) {
+      // Nếu initialComments đã có replies thì dùng luôn, ngược lại nest
+      if (initialComments[0].replies !== undefined) {
+        setComments(initialComments);
+      } else {
+        setComments(nestComments(initialComments));
+      }
     } else {
-      setComments(nestComments(initialComments ?? []));
+      setComments([]); // clear trước khi fetch
     }
   }, [initialComments]);
+
+  // ✅ FETCH TỪ API MỚI: /blog/comment/:pidOrSlug
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!blogId) return;
+      try {
+        const res = await apiService.getCommentsByPost(blogId);
+        const list = Array.isArray(res?.data) ? res.data : [];
+        // API đã trả replies sẵn → set thẳng
+        if (!cancelled) setComments(list);
+      } catch (e: any) {
+        if (!cancelled) {
+          console.error("fetch comments error:", e);
+          toast({
+            title: "Không tải được bình luận",
+            description: e?.message || "Vui lòng thử lại.",
+            variant: "destructive",
+          });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [blogId]);
 
   const isOwner = (ur?: UserResponse | null) =>
     !!ur?.id && !!user?.id && String(ur.id) === String(user.id);
 
-  // CREATE
+  // ===== CREATE
   const handleAddComment = async () => {
     if (!newComment.trim() || !isAuthenticated) return;
     try {
@@ -89,7 +123,7 @@ export function useComments(blogId: string, initialComments: Comment[]) {
     }
   };
 
-  // REPLY
+  // ===== REPLY
   const handleAddReply = async (parentId: string) => {
     if (!replyContent.trim() || !isAuthenticated) return;
     try {
@@ -112,9 +146,8 @@ export function useComments(blogId: string, initialComments: Comment[]) {
           parentId,
         };
 
-        setComments((prev) => {
-          if (!Array.isArray(prev)) return prev;
-          return prev.map((comment) => {
+        setComments((prev) =>
+          prev.map((comment) => {
             if (String(comment.id) === String(parentId)) {
               return {
                 ...comment,
@@ -124,8 +157,8 @@ export function useComments(blogId: string, initialComments: Comment[]) {
               };
             }
             return comment;
-          });
-        });
+          })
+        );
 
         setReplyingTo(null);
         setReplyContent("");
@@ -139,7 +172,7 @@ export function useComments(blogId: string, initialComments: Comment[]) {
     }
   };
 
-  // EDIT
+  // ===== EDIT
   const openEdit = (id: string, content: string) => {
     setEditTarget({ id, content });
     setEditValue(content);
@@ -181,7 +214,7 @@ export function useComments(blogId: string, initialComments: Comment[]) {
     }
   };
 
-  // DELETE
+  // ===== DELETE
   const openDelete = (id: string) => {
     setDeleteTargetId(id);
     setConfirmOpen(true);

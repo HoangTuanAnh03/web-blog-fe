@@ -209,7 +209,14 @@ class ApiService {
     });
   }
 
-  // ===== Comments (NEW) =====
+  // ===== Comments =====
+  async getCommentsByPost(pid: string) {
+  // const safe = encodeURIComponent(pidOrSlug);
+  return this.fetchApi<ApiResponse<Comment[]>>(`/blog/comment/${pid}`, {
+    method: "GET",
+  });
+}
+
   async createComment(payload: {
     content: string;
     pid: string;
